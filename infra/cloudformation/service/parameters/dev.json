@@ -1,0 +1,82 @@
+[
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "facility"
+  },
+  {
+    "ParameterKey": "VpcCidr",
+    "ParameterValue": "10.0.0.0/16"
+  },
+  {
+    "ParameterKey": "PublicSubnet1Cidr",
+    "ParameterValue": "10.0.0.0/24"
+  },
+  {
+    "ParameterKey": "PublicSubnet2Cidr",
+    "ParameterValue": "10.0.1.0/24"
+  },
+  {
+    "ParameterKey": "PrivateSubnet1Cidr",
+    "ParameterValue": "10.0.10.0/24"
+  },
+  {
+    "ParameterKey": "PrivateSubnet2Cidr",
+    "ParameterValue": "10.0.11.0/24"
+  },
+  {
+    "ParameterKey": "DataSubnet1Cidr",
+    "ParameterValue": "10.0.20.0/24"
+  },
+  {
+    "ParameterKey": "DataSubnet2Cidr",
+    "ParameterValue": "10.0.21.0/24"
+  },
+  {
+    "ParameterKey": "DBInstanceClass",
+    "ParameterValue": "db.t4g.micro"
+  },
+  {
+    "ParameterKey": "DBAllocatedStorage",
+    "ParameterValue": "20"
+  },
+  {
+    "ParameterKey": "DBMultiAZ",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "DBBackupRetentionPeriod",
+    "ParameterValue": "7"
+  },
+  {
+    "ParameterKey": "ECSTaskCpu",
+    "ParameterValue": "256"
+  },
+  {
+    "ParameterKey": "ECSTaskMemory",
+    "ParameterValue": "512"
+  },
+  {
+    "ParameterKey": "ECSDesiredCount",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "ECSMinCapacity",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "ECSMaxCapacity",
+    "ParameterValue": "3"
+  },
+  {
+    "ParameterKey": "BatchTaskCpu",
+    "ParameterValue": "1024"
+  },
+  {
+    "ParameterKey": "BatchTaskMemory",
+    "ParameterValue": "2048"
+  }
+]

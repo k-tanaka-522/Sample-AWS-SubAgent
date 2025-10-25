@@ -1,0 +1,311 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Egress VPC for centralized internet egress with Network Firewall
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  Environment:
+    Type: String
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  VpcCidr:
+    Type: String
+    Default: 10.255.0.0/16
+    Description: CIDR for Egress VPC
+
+  TransitGatewayId:
+    Type: String
+    Description: Transit Gateway ID (from TransitGatewayStack)
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ----------------------------------------------------------------------------
+  # VPC
+  # ----------------------------------------------------------------------------
+  EgressVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-egress-vpc
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: Centralized Internet Egress
+
+  # ----------------------------------------------------------------------------
+  # Internet Gateway
+  # ----------------------------------------------------------------------------
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-egress-igw
+        - Key: Environment
+          Value: !Ref Environment
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref EgressVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # ----------------------------------------------------------------------------
+  # Subnets
+  # ----------------------------------------------------------------------------
+  # Public Subnets (NAT Gateway配置用)
+  PublicSubnetAZa:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref EgressVPC
+      CidrBlock: 10.255.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-egress-public-az-a
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Type
+          Value: Public
+
+  PublicSubnetAZc:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref EgressVPC
+      CidrBlock: 10.255.1.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-egress-public-az-c
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Type
+          Value: Public
+
+  # Firewall Subnets (Network Firewall Endpoint配置用)
+  FirewallSubnetAZa:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref EgressVPC
+      CidrBlock: 10.255.10.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-egress-firewall-az-a
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Type
+          Value: Firewall
+
+  FirewallSubnetAZc:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref EgressVPC
+      CidrBlock: 10.255.11.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-egress-firewall-az-c
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Type
+          Value: Firewall
+
+  # TGW Attachment Subnets (Transit Gateway接続用)
+  TgwAttachSubnetAZa:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref EgressVPC
+      CidrBlock: 10.255.20.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-egress-tgw-attach-az-a
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Type
+          Value: TGW Attachment
+
+  TgwAttachSubnetAZc:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref EgressVPC
+      CidrBlock: 10.255.21.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-egress-tgw-attach-az-c
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Type
+          Value: TGW Attachment
+
+  # ----------------------------------------------------------------------------
+  # Route Tables
+  # ----------------------------------------------------------------------------
+  # Public Subnet Route Table
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref EgressVPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-egress-public-rt
+        - Key: Environment
+          Value: !Ref Environment
+
+  PublicDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetAZaRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetAZa
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetAZcRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetAZc
+      RouteTableId: !Ref PublicRouteTable
+
+  # Firewall Subnet Route Table
+  FirewallRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref EgressVPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-egress-firewall-rt
+        - Key: Environment
+          Value: !Ref Environment
+
+  FirewallSubnetAZaRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref FirewallSubnetAZa
+      RouteTableId: !Ref FirewallRouteTable
+
+  FirewallSubnetAZcRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref FirewallSubnetAZc
+      RouteTableId: !Ref FirewallRouteTable
+
+  # TGW Attachment Subnet Route Table
+  TgwAttachRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref EgressVPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-egress-tgw-attach-rt
+        - Key: Environment
+          Value: !Ref Environment
+
+  TgwAttachSubnetAZaRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref TgwAttachSubnetAZa
+      RouteTableId: !Ref TgwAttachRouteTable
+
+  TgwAttachSubnetAZcRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref TgwAttachSubnetAZc
+      RouteTableId: !Ref TgwAttachRouteTable
+
+  # ----------------------------------------------------------------------------
+  # Transit Gateway Attachment
+  # ----------------------------------------------------------------------------
+  TransitGatewayAttachment:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties:
+      TransitGatewayId: !Ref TransitGatewayId
+      VpcId: !Ref EgressVPC
+      SubnetIds:
+        - !Ref TgwAttachSubnetAZa
+        - !Ref TgwAttachSubnetAZc
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-egress-vpc-tgw-attach
+        - Key: Environment
+          Value: !Ref Environment
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  VpcId:
+    Value: !Ref EgressVPC
+    Description: Egress VPC ID
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-EgressVpcId
+
+  PublicSubnetAZa:
+    Value: !Ref PublicSubnetAZa
+    Description: Public Subnet in AZ-a
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-EgressPublicSubnetAZa
+
+  PublicSubnetAZc:
+    Value: !Ref PublicSubnetAZc
+    Description: Public Subnet in AZ-c
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-EgressPublicSubnetAZc
+
+  FirewallSubnetAZa:
+    Value: !Ref FirewallSubnetAZa
+    Description: Firewall Subnet in AZ-a
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-EgressFirewallSubnetAZa
+
+  FirewallSubnetAZc:
+    Value: !Ref FirewallSubnetAZc
+    Description: Firewall Subnet in AZ-c
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-EgressFirewallSubnetAZc
+
+  TgwAttachSubnetAZa:
+    Value: !Ref TgwAttachSubnetAZa
+    Description: TGW Attachment Subnet in AZ-a
+
+  TgwAttachSubnetAZc:
+    Value: !Ref TgwAttachSubnetAZc
+    Description: TGW Attachment Subnet in AZ-c
+
+  TransitGatewayAttachmentId:
+    Value: !Ref TransitGatewayAttachment
+    Description: Transit Gateway Attachment ID
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-EgressTgwAttachmentId
+
+  PublicRouteTableId:
+    Value: !Ref PublicRouteTable
+    Description: Public Route Table ID
+
+  FirewallRouteTableId:
+    Value: !Ref FirewallRouteTable
+    Description: Firewall Route Table ID
+
+  TgwAttachRouteTableId:
+    Value: !Ref TgwAttachRouteTable
+    Description: TGW Attachment Route Table ID

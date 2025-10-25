@@ -1,0 +1,427 @@
+{
+  "project": {
+    "name": "役所設備管理システム AWS ECS 移行プロジェクト",
+    "type": "infrastructure-migration",
+    "phase": "implementation",
+    "created_at": "2025-10-24T13:15:00Z",
+    "updated_at": "2025-10-25T09:30:00Z"
+  },
+  "phases": {
+    "planning": {
+      "status": "completed",
+      "started_at": "2025-10-24T13:15:00Z",
+      "completed_at": "2025-10-24T13:35:00Z",
+      "document": "docs/01_企画書.md"
+    },
+    "requirements": {
+      "status": "completed",
+      "started_at": "2025-10-24T13:35:00Z",
+      "completed_at": "2025-10-24T14:00:00Z",
+      "document": "docs/02_要件定義書.md"
+    },
+    "design": {
+      "status": "completed",
+      "started_at": "2025-10-24T14:00:00Z",
+      "completed_at": "2025-10-25T09:00:00Z",
+      "document": "docs/03_基本設計/"
+    },
+    "implementation": {
+      "status": "in_progress",
+      "started_at": "2025-10-25T09:30:00Z",
+      "completed_at": null,
+      "document": null
+    },
+    "testing": {
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "document": null
+    },
+    "deployment": {
+      "status": "pending",
+      "started_at": null,
+      "completed_at": null,
+      "document": null
+    }
+  },
+  "requirements": {
+    "business_background": {},
+    "tech_stack": {},
+    "functional_requirements": [],
+    "non_functional_requirements": {},
+    "constraints": {}
+  },
+  "design": {
+    "architecture": "multi-account-with-transit-gateway",
+    "tech_stack": {},
+    "infrastructure": {
+      "account_strategy": {
+        "type": "multi-account-per-environment",
+        "accounts": [
+          {
+            "name": "management",
+            "purpose": "AWS Organizations管理、Billing統合"
+          },
+          {
+            "name": "network-shared",
+            "purpose": "共通系アカウント（ネットワークHub、セキュリティ、監査、ログ集約）",
+            "components": [
+              "Direct Connect Gateway",
+              "VPN（フレッツワイドVPN）",
+              "Transit Gateway",
+              "Egress VPC（NAT GW + IGW + AWS Network Firewall）",
+              "Client VPN（管理・検証用）",
+              "Security Hub",
+              "GuardDuty",
+              "AWS Config",
+              "CloudTrail（Organizations Trail）",
+              "Systems Manager",
+              "Route53 Resolver"
+            ]
+          },
+          {
+            "name": "service-dev",
+            "purpose": "開発環境",
+            "vpc_cidr": "10.0.0.0/16",
+            "cognito": "職員用・事業者用ユーザープール（dev）"
+          },
+          {
+            "name": "service-stg",
+            "purpose": "ステージング環境",
+            "vpc_cidr": "10.1.0.0/16",
+            "cognito": "職員用・事業者用ユーザープール（stg）"
+          },
+          {
+            "name": "service-prod",
+            "purpose": "本番環境",
+            "vpc_cidr": "10.2.0.0/16",
+            "cognito": "職員用・事業者用ユーザープール（prod）"
+          }
+        ],
+        "connectivity": "Transit Gateway"
+      },
+      "frontend_delivery": {
+        "staff": "ECS直参照（内部ALB → ECS）",
+        "vendor": "CloudFront + S3"
+      },
+      "internet_egress": {
+        "onpremise_windows_update": "共通系Egress VPC経由（AWS Network Firewall）",
+        "vendor_api": "各サービスアカウントで個別公開"
+      },
+      "alb_configuration": {
+        "per_environment": {
+          "internal_alb": {
+            "type": "内部ALB（internet-facing: false）",
+            "purpose": "職員向け",
+            "health_check": {
+              "path": "/health",
+              "type": "シンプル（生存確認のみ）",
+              "interval": 30,
+              "timeout": 5,
+              "healthy_threshold": 2,
+              "unhealthy_threshold": 2
+            }
+          },
+          "public_alb": {
+            "type": "パブリックALB（internet-facing: true）",
+            "purpose": "事業者向け",
+            "health_check": {
+              "path": "/health",
+              "type": "シンプル（生存確認のみ）",
+              "interval": 30,
+              "timeout": 5,
+              "healthy_threshold": 2,
+              "unhealthy_threshold": 2
+            }
+          }
+        }
+      },
+      "monitoring_configuration": {
+        "cloudwatch_metrics": [
+          "ECS CPU使用率",
+          "ECS メモリ使用率",
+          "RDS CPU使用率",
+          "RDS 接続数",
+          "ALB 5xxエラー率",
+          "API応答時間"
+        ],
+        "custom_metrics": [
+          "RDS接続確認（アプリケーションから定期的にDB接続確認）",
+          "ビジネスメトリクス（任意）"
+        ],
+        "alert_destinations": ["メール", "Slack", "Teams"]
+      },
+      "ecs_configuration": {
+        "staff_api_task": {
+          "description": "業務API + React SPA配信（内部ALB経由）",
+          "dev": "0.25vCPU / 0.5GB（固定1タスク）",
+          "stg": "0.25vCPU / 0.5GB（固定2タスク）",
+          "prod": {
+            "resources": "0.5vCPU / 1GB",
+            "auto_scaling": {
+              "min": 2,
+              "max": 5,
+              "scale_out": "CPU70%以上が3分間継続 → +1タスク",
+              "scale_in": "CPU30%以下が10分間継続 → -1タスク"
+            }
+          }
+        },
+        "vendor_api_task": {
+          "description": "事業者API（パブリックALB経由）",
+          "dev": "0.25vCPU / 0.5GB（固定1タスク）",
+          "stg": "0.25vCPU / 0.5GB（固定2タスク）",
+          "prod": {
+            "resources": "0.5vCPU / 1GB",
+            "auto_scaling": {
+              "min": 2,
+              "max": 5,
+              "scale_out": "CPU70%以上が3分間継続 → +1タスク",
+              "scale_in": "CPU30%以下が10分間継続 → -1タスク"
+            }
+          }
+        },
+        "batch_task": {
+          "description": "バッチ処理（EventBridge Scheduled Tasks、起動→停止で節約）",
+          "dev": "0.25vCPU / 0.5GB",
+          "stg": "0.25vCPU / 0.5GB",
+          "prod": "2vCPU / 4GB（性能試験後に調整、最大4vCPU想定）",
+          "schedules": [
+            {
+              "name": "daily-batch",
+              "description": "日次集計処理",
+              "cron": "cron(0 2 * * ? *)",
+              "schedule_expression_readable": "毎日 深夜2:00（JST 11:00 UTC）",
+              "configurable": true
+            },
+            {
+              "name": "weekly-batch",
+              "description": "週次集計処理",
+              "cron": "cron(0 3 ? * MON *)",
+              "schedule_expression_readable": "毎週月曜 深夜3:00（JST 18:00 UTC 日曜）",
+              "configurable": true
+            },
+            {
+              "name": "monthly-batch",
+              "description": "月次集計処理",
+              "cron": "cron(0 2 1 * ? *)",
+              "schedule_expression_readable": "毎月1日 深夜2:00（JST 17:00 UTC 前月末）",
+              "configurable": true
+            }
+          ]
+        }
+      },
+      "rds_configuration": {
+        "per_environment": true,
+        "dev": {
+          "instance_type": "db.t4g.micro",
+          "storage": "20GB (gp3)",
+          "multi_az": false,
+          "auto_scaling": "有効（最大50GB）"
+        },
+        "stg": {
+          "instance_type": "db.t4g.small",
+          "storage": "50GB (gp3)",
+          "multi_az": true,
+          "auto_scaling": "有効（最大100GB）"
+        },
+        "prod": {
+          "instance_type": "db.t4g.medium",
+          "storage": "100GB (gp3)",
+          "multi_az": true,
+          "auto_scaling": "有効（最大200GB）"
+        }
+      },
+      "vpc_cidr": {
+        "service-dev": "10.0.0.0/16",
+        "service-stg": "10.1.0.0/16",
+        "service-prod": "10.2.0.0/16",
+        "egress-vpc": "10.255.0.0/16"
+      }
+    },
+    "cicd_strategy": {
+      "tool": "GitHub Actions",
+      "branch_strategy": {
+        "dev": "develop",
+        "stg": "release/*",
+        "prod": "main"
+      },
+      "deployment_flow": {
+        "step1": {
+          "trigger": "プルリクエスト作成",
+          "action": "dry-run実行（CloudFormation Change Set作成）",
+          "output": "差分をプルリクエストコメントに自動投稿"
+        },
+        "step2": {
+          "trigger": "プルリクエストレビュー",
+          "action": "コードレビュー + Change Set（差分）レビュー",
+          "approval": "必須"
+        },
+        "step3": {
+          "trigger": "プルリクエストマージ",
+          "action": "マージのみ、デプロイは実行されない",
+          "note": "マージと承認を分離"
+        },
+        "step4": {
+          "trigger": "手動承認ステップ",
+          "action": "GitHub Actions manual approval",
+          "approval": "承認者が「Deploy」ボタンを押す"
+        },
+        "step5": {
+          "trigger": "手動承認完了",
+          "action": "CloudFormation実行（本番デプロイ）"
+        }
+      },
+      "environment_specific": {
+        "dev": {
+          "auto_deploy_after_merge": true,
+          "manual_approval": false
+        },
+        "stg": {
+          "auto_deploy_after_merge": true,
+          "manual_approval": false
+        },
+        "prod": {
+          "auto_deploy_after_merge": false,
+          "manual_approval": true,
+          "note": "マージ後も手動承認必須"
+        }
+      }
+    },
+    "cloudformation_strategy": {
+      "stack_separation": "layer-based",
+      "stacks": [
+        {
+          "name": "network-stack",
+          "purpose": "VPC、サブネット、ルートテーブル、IGW、NAT GW",
+          "lifecycle": "長期（ほぼ変更なし）"
+        },
+        {
+          "name": "security-stack",
+          "purpose": "セキュリティグループ",
+          "lifecycle": "中期（たまに変更）"
+        },
+        {
+          "name": "database-stack",
+          "purpose": "RDS PostgreSQL",
+          "lifecycle": "長期（慎重に変更）"
+        },
+        {
+          "name": "compute-stack",
+          "purpose": "ECS、ALB、タスク定義",
+          "lifecycle": "短期（頻繁に変更）"
+        },
+        {
+          "name": "auth-stack",
+          "purpose": "Cognito（職員用、事業者用）",
+          "lifecycle": "中期（たまに変更）"
+        }
+      ],
+      "deployment_order": [
+        "1. network-stack",
+        "2. security-stack",
+        "3. database-stack",
+        "4. auth-stack",
+        "5. compute-stack"
+      ]
+    },
+    "shared_account_cloudformation": {
+      "include": true,
+      "stacks": [
+        {
+          "name": "transit-gateway-stack",
+          "purpose": "Transit Gateway、Route Table、Attachments"
+        },
+        {
+          "name": "egress-vpc-stack",
+          "purpose": "Egress VPC、サブネット、ルートテーブル、IGW、NAT GW"
+        },
+        {
+          "name": "network-firewall-stack",
+          "purpose": "AWS Network Firewall、ファイアウォールポリシー"
+        },
+        {
+          "name": "client-vpn-stack",
+          "purpose": "Client VPN、エンドポイント"
+        },
+        {
+          "name": "security-hub-stack",
+          "purpose": "Security Hub、GuardDuty、AWS Config"
+        }
+      ],
+      "deployment_order": [
+        "1. transit-gateway-stack",
+        "2. egress-vpc-stack",
+        "3. network-firewall-stack",
+        "4. client-vpn-stack",
+        "5. security-hub-stack"
+      ]
+    },
+    "deployment_priority": {
+      "strategy": "dev-first",
+      "phases": [
+        {
+          "phase": 1,
+          "name": "共通系アカウント構築",
+          "targets": ["network-shared"],
+          "purpose": "Transit Gateway、Egress VPC、Network Firewall、Client VPN"
+        },
+        {
+          "phase": 2,
+          "name": "開発環境構築",
+          "targets": ["service-dev"],
+          "purpose": "動作確認、ルーティング検証、アプリケーション開発"
+        },
+        {
+          "phase": 3,
+          "name": "ステージング環境構築",
+          "targets": ["service-stg"],
+          "purpose": "本番前検証、負荷テスト"
+        },
+        {
+          "phase": 4,
+          "name": "本番環境構築",
+          "targets": ["service-prod"],
+          "purpose": "本番稼働"
+        }
+      ]
+    }
+  },
+  "implementation": {
+    "directory_structure": null,
+    "coding_standards_applied": false,
+    "scope": {
+      "type": "infrastructure-with-sample-app",
+      "infrastructure": [
+        "CloudFormation（全環境：共通系、dev、stg、prod）",
+        "Transit Gateway構成",
+        "Egress VPC（AWS Network Firewall）",
+        "サービス系VPC（3層サブネット）",
+        "ECS Fargate（業務API、事業者API、バッチ）",
+        "RDS PostgreSQL（マルチAZ）",
+        "ALB（内部、パブリック）",
+        "Cognito（職員用、事業者用）",
+        "CloudFront + S3",
+        "CI/CDパイプライン（GitHub Actions）"
+      ],
+      "application": [
+        "Hello Worldレベルのサンプルアプリ",
+        "Node.js + Express（業務API、事業者API）",
+        "React SPA（職員用、事業者用）",
+        "バッチ処理サンプル",
+        "動作確認用の最小限実装"
+      ],
+      "documentation": [
+        "基本設計書",
+        "詳細設計書",
+        "デプロイ手順書",
+        "運用手順書",
+        "トラブルシューティングガイド",
+        "DR手順書"
+      ]
+    }
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "last_command": "/init"
+  }
+}

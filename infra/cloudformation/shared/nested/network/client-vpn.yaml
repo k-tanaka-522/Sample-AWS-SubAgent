@@ -1,0 +1,172 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Client VPN for remote access to private resources
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  Environment:
+    Type: String
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  ClientVpnCidr:
+    Type: String
+    Default: 172.16.0.0/16
+    Description: CIDR for Client VPN (must not overlap with any VPC)
+
+  TransitGatewayId:
+    Type: String
+    Description: Transit Gateway ID for routing to service VPCs
+
+  # Note: Server Certificate and Client Certificate ARNs must be created manually
+  # via AWS Certificate Manager (ACM) before deploying this stack
+  ServerCertificateArn:
+    Type: String
+    Default: ""
+    Description: ARN of server certificate in ACM (must be created manually)
+
+  ClientRootCertificateArn:
+    Type: String
+    Default: ""
+    Description: ARN of client root certificate in ACM (must be created manually)
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  HasCertificates: !And
+    - !Not [!Equals [!Ref ServerCertificateArn, ""]]
+    - !Not [!Equals [!Ref ClientRootCertificateArn, ""]]
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ----------------------------------------------------------------------------
+  # CloudWatch Log Group for VPN Logs
+  # ----------------------------------------------------------------------------
+  VpnLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/clientvpn/${ProjectName}-${Environment}
+      RetentionInDays: 30
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-clientvpn-logs
+        - Key: Environment
+          Value: !Ref Environment
+
+  VpnLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref VpnLogGroup
+      LogStreamName: connection-log
+
+  # ----------------------------------------------------------------------------
+  # Client VPN Endpoint
+  # ----------------------------------------------------------------------------
+  # Note: This resource will only be created if certificates are provided
+  ClientVpnEndpoint:
+    Type: AWS::EC2::ClientVpnEndpoint
+    Condition: HasCertificates
+    Properties:
+      Description: !Sub ${ProjectName} Client VPN for remote access
+      ClientCidrBlock: !Ref ClientVpnCidr
+      ServerCertificateArn: !Ref ServerCertificateArn
+      AuthenticationOptions:
+        - Type: certificate-authentication
+          MutualAuthentication:
+            ClientRootCertificateChainArn: !Ref ClientRootCertificateArn
+      ConnectionLogOptions:
+        Enabled: true
+        CloudwatchLogGroup: !Ref VpnLogGroup
+        CloudwatchLogStream: !Ref VpnLogStream
+      DnsServers:
+        - 10.255.0.2  # VPC DNS resolver
+      SplitTunnel: true
+      VpnPort: 443
+      TransportProtocol: udp
+      SessionTimeoutHours: 8
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-client-vpn
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ----------------------------------------------------------------------------
+  # Security Group for Client VPN
+  # ----------------------------------------------------------------------------
+  ClientVpnSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Client VPN endpoint
+      VpcId: !ImportValue
+        Fn::Sub: ${ProjectName}-${Environment}-EgressVpcId
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-clientvpn-sg
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ----------------------------------------------------------------------------
+  # Client VPN Target Network Association
+  # ----------------------------------------------------------------------------
+  # Note: Associate with TGW Attachment subnets in Egress VPC
+  # Additional associations for other VPCs can be added as needed
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  VpnEndpointId:
+    Value: !If [HasCertificates, !Ref ClientVpnEndpoint, "NOT_CREATED"]
+    Description: Client VPN Endpoint ID
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-ClientVpnEndpointId
+
+  VpnSecurityGroupId:
+    Value: !Ref ClientVpnSecurityGroup
+    Description: Client VPN Security Group ID
+
+  VpnLogGroupName:
+    Value: !Ref VpnLogGroup
+    Description: CloudWatch Log Group for VPN logs
+
+  SetupInstructions:
+    Value: !Sub |
+      Client VPN Setup Instructions:
+
+      1. Create server and client certificates in ACM:
+         - Server certificate: Used by VPN endpoint
+         - Client root certificate: Used for client authentication
+
+      2. Update stack parameters:
+         - ServerCertificateArn: <ARN of server cert>
+         - ClientRootCertificateArn: <ARN of client root cert>
+
+      3. Associate VPN endpoint with subnets:
+         aws ec2 associate-client-vpn-target-network \
+           --client-vpn-endpoint-id ${ClientVpnEndpoint} \
+           --subnet-id <TGW Attachment Subnet>
+
+      4. Add authorization rules:
+         aws ec2 authorize-client-vpn-ingress \
+           --client-vpn-endpoint-id ${ClientVpnEndpoint} \
+           --target-network-cidr 10.0.0.0/8 \
+           --authorize-all-groups
+
+      5. Download client configuration:
+         aws ec2 export-client-vpn-client-configuration \
+           --client-vpn-endpoint-id ${ClientVpnEndpoint} \
+           --output text > client-config.ovpn
+
+      6. Distribute client configuration to users
+    Description: Manual setup steps required after stack creation

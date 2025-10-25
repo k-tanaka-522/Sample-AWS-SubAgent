@@ -1,0 +1,230 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS CloudTrail for audit logging (Organizations Trail)
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  Environment:
+    Type: String
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  OrganizationId:
+    Type: String
+    Default: ""
+    Description: AWS Organizations ID (optional, for Organizations Trail)
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  IsOrganizationTrail: !Not [!Equals [!Ref OrganizationId, ""]]
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ----------------------------------------------------------------------------
+  # S3 Bucket for CloudTrail Logs
+  # ----------------------------------------------------------------------------
+  CloudTrailBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${ProjectName}-${Environment}-cloudtrail-${AWS::AccountId}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldLogs
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 90
+                StorageClass: GLACIER
+            ExpirationInDays: 730  # 2年保管
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-cloudtrail-bucket
+        - Key: Environment
+          Value: !Ref Environment
+
+  CloudTrailBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CloudTrailBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AWSCloudTrailAclCheck
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !GetAtt CloudTrailBucket.Arn
+          - Sid: AWSCloudTrailWrite
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub ${CloudTrailBucket.Arn}/*
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+          - Sid: AWSCloudTrailOrganizationWrite
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub ${CloudTrailBucket.Arn}/*
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+                aws:SourceOrgID: !If [IsOrganizationTrail, !Ref OrganizationId, !Ref AWS::NoValue]
+
+  # ----------------------------------------------------------------------------
+  # CloudWatch Log Group for CloudTrail
+  # ----------------------------------------------------------------------------
+  CloudTrailLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/cloudtrail/${ProjectName}-${Environment}
+      RetentionInDays: 90
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-cloudtrail-logs
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ----------------------------------------------------------------------------
+  # IAM Role for CloudTrail to CloudWatch Logs
+  # ----------------------------------------------------------------------------
+  CloudTrailLogRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-${Environment}-cloudtrail-log-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CloudTrailLogPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !GetAtt CloudTrailLogGroup.Arn
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-cloudtrail-log-role
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ----------------------------------------------------------------------------
+  # CloudTrail
+  # ----------------------------------------------------------------------------
+  CloudTrail:
+    Type: AWS::CloudTrail::Trail
+    DependsOn:
+      - CloudTrailBucketPolicy
+    Properties:
+      TrailName: !Sub ${ProjectName}-${Environment}-trail
+      S3BucketName: !Ref CloudTrailBucket
+      IsLogging: true
+      IsMultiRegionTrail: true
+      IsOrganizationTrail: !If [IsOrganizationTrail, true, false]
+      IncludeGlobalServiceEvents: true
+      EnableLogFileValidation: true
+      CloudWatchLogsLogGroupArn: !GetAtt CloudTrailLogGroup.Arn
+      CloudWatchLogsRoleArn: !GetAtt CloudTrailLogRole.Arn
+      EventSelectors:
+        - ReadWriteType: All
+          IncludeManagementEvents: true
+          DataResources:
+            - Type: AWS::S3::Object
+              Values:
+                - !Sub arn:aws:s3:::${CloudTrailBucket}/*
+            - Type: AWS::Lambda::Function
+              Values:
+                - arn:aws:lambda:*:*:function/*
+      InsightSelectors:
+        - InsightType: ApiCallRateInsight
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-cloudtrail
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ----------------------------------------------------------------------------
+  # SNS Topic for CloudTrail Notifications
+  # ----------------------------------------------------------------------------
+  CloudTrailTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub ${ProjectName}-${Environment}-cloudtrail-notifications
+      DisplayName: CloudTrail Notifications
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-cloudtrail-topic
+        - Key: Environment
+          Value: !Ref Environment
+
+  CloudTrailTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref CloudTrailTopic
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudTrailPublish
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref CloudTrailTopic
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  CloudTrailBucketName:
+    Value: !Ref CloudTrailBucket
+    Description: S3 Bucket for CloudTrail logs
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-CloudTrailBucket
+
+  CloudTrailArn:
+    Value: !GetAtt CloudTrail.Arn
+    Description: CloudTrail ARN
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-CloudTrailArn
+
+  CloudTrailLogGroupName:
+    Value: !Ref CloudTrailLogGroup
+    Description: CloudWatch Log Group for CloudTrail
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-CloudTrailLogGroup
+
+  CloudTrailTopicArn:
+    Value: !Ref CloudTrailTopic
+    Description: SNS Topic for CloudTrail notifications
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-CloudTrailTopicArn

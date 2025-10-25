@@ -1,0 +1,121 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Transit Gateway for multi-VPC connectivity
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  Environment:
+    Type: String
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  TransitGatewayAsn:
+    Type: Number
+    Default: 64512
+    Description: BGP ASN for Transit Gateway
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ----------------------------------------------------------------------------
+  # Transit Gateway
+  # ----------------------------------------------------------------------------
+  TransitGateway:
+    Type: AWS::EC2::TransitGateway
+    Properties:
+      AmazonSideAsn: !Ref TransitGatewayAsn
+      DefaultRouteTableAssociation: disable
+      DefaultRouteTablePropagation: disable
+      DnsSupport: enable
+      VpnEcmpSupport: enable
+      MulticastSupport: disable
+      Description: !Sub ${ProjectName} Transit Gateway for multi-account connectivity
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-tgw
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ----------------------------------------------------------------------------
+  # Transit Gateway Route Tables
+  # ----------------------------------------------------------------------------
+  # Route Table for Service VPCs (Dev/Stg/Prod)
+  ServiceRouteTable:
+    Type: AWS::EC2::TransitGatewayRouteTable
+    Properties:
+      TransitGatewayId: !Ref TransitGateway
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-tgw-rt-service
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: Service VPCs (Dev/Stg/Prod)
+
+  # Route Table for Egress VPC
+  EgressRouteTable:
+    Type: AWS::EC2::TransitGatewayRouteTable
+    Properties:
+      TransitGatewayId: !Ref TransitGateway
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-tgw-rt-egress
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: Egress VPC (Internet向け通信)
+
+  # Route Table for On-Premise (VPN/Direct Connect)
+  OnPremiseRouteTable:
+    Type: AWS::EC2::TransitGatewayRouteTable
+    Properties:
+      TransitGatewayId: !Ref TransitGateway
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-tgw-rt-onpremise
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: On-Premise VPN/Direct Connect
+
+  # ----------------------------------------------------------------------------
+  # Default Route to Egress VPC (from Service Route Table)
+  # ----------------------------------------------------------------------------
+  # Note: Egress VPC Attachmentは別スタックで作成されるため、
+  #       このルートは手動設定またはカスタムリソースで追加する必要があります。
+  #       または、Egress VPC作成後に別スタックで追加。
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  TransitGatewayId:
+    Value: !Ref TransitGateway
+    Description: Transit Gateway ID
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-TransitGatewayId
+
+  ServiceRouteTableId:
+    Value: !Ref ServiceRouteTable
+    Description: Transit Gateway Route Table ID for Service VPCs
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-TgwRtService
+
+  EgressRouteTableId:
+    Value: !Ref EgressRouteTable
+    Description: Transit Gateway Route Table ID for Egress VPC
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-TgwRtEgress
+
+  OnPremiseRouteTableId:
+    Value: !Ref OnPremiseRouteTable
+    Description: Transit Gateway Route Table ID for On-Premise
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-TgwRtOnPremise
