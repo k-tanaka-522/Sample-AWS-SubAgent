@@ -49,7 +49,7 @@ Resources:
   CognitoUserPoolStaffStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/04-auth/nested/cognito-user-pool-staff.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/auth/cognito-user-pool-staff.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -67,7 +67,7 @@ Resources:
   CognitoUserPoolVendorStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/04-auth/nested/cognito-user-pool-vendor.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/auth/cognito-user-pool-vendor.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment

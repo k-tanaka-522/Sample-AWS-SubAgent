@@ -57,7 +57,7 @@ Resources:
   SNSTopicStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/06-monitoring/nested/sns-topic.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/monitoring/sns-topic.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -77,7 +77,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: SNSTopicStack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/06-monitoring/nested/cloudwatch-alarms.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/monitoring/cloudwatch-alarms.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment

@@ -92,7 +92,7 @@ Resources:
   DBSubnetGroupStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/02-database/nested/db-subnet-group.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/database/db-subnet-group.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -116,7 +116,7 @@ Resources:
   ParameterGroupStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/02-database/nested/parameter-group.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/database/parameter-group.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -137,7 +137,7 @@ Resources:
       - DBSubnetGroupStack
       - ParameterGroupStack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/02-database/nested/rds-postgresql.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/database/rds-postgresql.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment

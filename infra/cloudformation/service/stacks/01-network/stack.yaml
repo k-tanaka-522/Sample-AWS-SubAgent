@@ -86,7 +86,7 @@ Resources:
   VPCStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/01-network/nested/vpc.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/network/vpc.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -106,7 +106,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: VPCStack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/01-network/nested/subnets.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/network/subnets.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -130,7 +130,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: SubnetsStack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/01-network/nested/nat-gateway.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/network/nat-gateway.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -155,7 +155,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: NATGatewayStack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/01-network/nested/route-tables.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/network/route-tables.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -197,7 +197,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: VPCStack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/01-network/nested/security-groups.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/network/security-groups.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -220,7 +220,7 @@ Resources:
       - SubnetsStack
       - RouteTablesStack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/01-network/nested/transit-gateway-attachment.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/network/transit-gateway-attachment.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment

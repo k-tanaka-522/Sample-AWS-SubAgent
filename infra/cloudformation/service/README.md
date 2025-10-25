@@ -27,46 +27,47 @@
 
 ```
 service/
-├── stacks/                                # スタック定義
+├── stacks/                                # スタック定義（親スタックのみ）
 │   ├── 01-network/
-│   │   ├── stack.yaml                    # 親スタック
-│   │   └── nested/
-│   │       ├── vpc.yaml
-│   │       ├── subnets.yaml
-│   │       ├── nat-gateway.yaml
-│   │       ├── route-tables.yaml
-│   │       ├── security-groups.yaml
-│   │       └── transit-gateway-attachment.yaml
+│   │   └── stack.yaml
 │   ├── 02-database/
-│   │   ├── stack.yaml
-│   │   └── nested/
-│   │       ├── rds-postgresql.yaml
-│   │       ├── db-subnet-group.yaml
-│   │       └── parameter-group.yaml
+│   │   └── stack.yaml
 │   ├── 03-compute/
-│   │   ├── stack.yaml
-│   │   └── nested/
-│   │       ├── ecs-cluster.yaml
-│   │       ├── ecs-task-definitions.yaml
-│   │       ├── ecs-services.yaml
-│   │       ├── alb.yaml
-│   │       └── target-groups.yaml
+│   │   └── stack.yaml
 │   ├── 04-auth/
-│   │   ├── stack.yaml
-│   │   └── nested/
-│   │       ├── cognito-user-pool-staff.yaml
-│   │       └── cognito-user-pool-vendor.yaml
+│   │   └── stack.yaml
 │   ├── 05-storage/
-│   │   ├── stack.yaml
-│   │   └── nested/
-│   │       ├── s3-frontend.yaml
-│   │       ├── s3-logs.yaml
-│   │       └── cloudfront.yaml
+│   │   └── stack.yaml
 │   └── 06-monitoring/
-│       ├── stack.yaml
-│       └── nested/
-│           ├── cloudwatch-alarms.yaml
-│           └── sns-topic.yaml
+│       └── stack.yaml
+├── templates/                             # ネストスタックテンプレート
+│   ├── network/
+│   │   ├── vpc.yaml
+│   │   ├── subnets.yaml
+│   │   ├── nat-gateway.yaml
+│   │   ├── route-tables.yaml
+│   │   ├── security-groups.yaml
+│   │   └── transit-gateway-attachment.yaml
+│   ├── database/
+│   │   ├── rds-postgresql.yaml
+│   │   ├── db-subnet-group.yaml
+│   │   └── parameter-group.yaml
+│   ├── compute/
+│   │   ├── ecs-cluster.yaml
+│   │   ├── ecs-task-definitions.yaml
+│   │   ├── ecs-services.yaml
+│   │   ├── alb.yaml
+│   │   └── target-groups.yaml
+│   ├── auth/
+│   │   ├── cognito-user-pool-staff.yaml
+│   │   └── cognito-user-pool-vendor.yaml
+│   ├── storage/
+│   │   ├── s3-frontend.yaml
+│   │   ├── s3-logs.yaml
+│   │   └── cloudfront.yaml
+│   └── monitoring/
+│       ├── cloudwatch-alarms.yaml
+│       └── sns-topic.yaml
 ├── parameters/                            # 環境別パラメーター
 │   ├── dev.json
 │   ├── stg.json
@@ -77,7 +78,11 @@ service/
     └── deploy-all.sh
 ```
 
-**注**: `templates/` ディレクトリは不要です。各スタックの `nested/` 配下に再利用可能テンプレートを配置しています。クロススタック共通テンプレートが必要になった場合のみ追加します。
+**標準CloudFormation構成**:
+- `stacks/`: 親スタック定義（環境ごとにデプロイする単位）
+- `templates/`: 再利用可能なネストスタックテンプレート
+- `parameters/`: 環境別パラメーター（dev/stg/prod）
+- `scripts/`: デプロイ・ロールバックスクリプト
 
 ---
 

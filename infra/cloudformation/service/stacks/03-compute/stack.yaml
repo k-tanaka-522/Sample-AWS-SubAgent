@@ -108,7 +108,7 @@ Resources:
   ECSClusterStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/03-compute/nested/ecs-cluster.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/compute/ecs-cluster.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -127,7 +127,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: ECSClusterStack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/03-compute/nested/ecs-task-definitions.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/compute/ecs-task-definitions.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -152,7 +152,7 @@ Resources:
   ALBStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/03-compute/nested/alb.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/compute/alb.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -179,7 +179,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: ALBStack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/03-compute/nested/target-groups.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/compute/target-groups.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -202,7 +202,7 @@ Resources:
       - ECSTaskDefinitionsStack
       - TargetGroupsStack
     Properties:
-      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/03-compute/nested/ecs-services.yaml
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/templates/compute/ecs-services.yaml
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
