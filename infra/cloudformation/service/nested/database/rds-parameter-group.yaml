@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: RDS Parameter Group for PostgreSQL 14
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+Mappings:
+  ParameterSettings:
+    dev:
+      MaxConnections: '50'
+      SharedBuffers: '{DBInstanceClassMemory/32768}'  # 256MB
+      WorkMem: '4096'  # 4MB
+      MaintenanceWorkMem: '65536'  # 64MB
+      EffectiveCacheSize: '{DBInstanceClassMemory/16384}'  # 512MB
+    stg:
+      MaxConnections: '100'
+      SharedBuffers: '{DBInstanceClassMemory/16384}'  # 512MB
+      WorkMem: '8192'  # 8MB
+      MaintenanceWorkMem: '131072'  # 128MB
+      EffectiveCacheSize: '{DBInstanceClassMemory/8192}'  # 1GB
+    prod:
+      MaxConnections: '200'
+      SharedBuffers: '{DBInstanceClassMemory/8192}'  # 1GB
+      WorkMem: '16384'  # 16MB
+      MaintenanceWorkMem: '262144'  # 256MB
+      EffectiveCacheSize: '{DBInstanceClassMemory/4096}'  # 2GB
+
+Resources:
+  DBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      DBParameterGroupName: !Sub ${ProjectName}-${Environment}-postgres14-params
+      Description: !Sub Custom parameter group for PostgreSQL 14 (${Environment})
+      Family: postgres14
+      Parameters:
+        max_connections: !FindInMap [ParameterSettings, !Ref Environment, MaxConnections]
+        shared_buffers: !FindInMap [ParameterSettings, !Ref Environment, SharedBuffers]
+        work_mem: !FindInMap [ParameterSettings, !Ref Environment, WorkMem]
+        maintenance_work_mem: !FindInMap [ParameterSettings, !Ref Environment, MaintenanceWorkMem]
+        effective_cache_size: !FindInMap [ParameterSettings, !Ref Environment, EffectiveCacheSize]
+        log_min_duration_statement: '1000'  # 1秒以上のクエリをログ出力
+        log_statement: !If [IsProd, 'ddl', 'all']
+        rds.force_ssl: '1'  # TLS必須
+        timezone: 'Asia/Tokyo'
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-postgres14-params
+        - Key: Environment
+          Value: !Ref Environment
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, 'prod']
+
+Outputs:
+  DBParameterGroupName:
+    Description: DB Parameter Group Name
+    Value: !Ref DBParameterGroup
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-DBParameterGroup

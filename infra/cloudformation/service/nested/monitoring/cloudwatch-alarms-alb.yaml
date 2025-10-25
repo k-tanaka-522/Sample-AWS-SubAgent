@@ -1,0 +1,193 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudWatch Alarms for Application Load Balancers'
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  Target5XXErrorThreshold:
+    Type: Number
+    Default: 10
+    Description: Threshold for Target 5XX errors (count in 5 minutes)
+
+  UnhealthyHostThreshold:
+    Type: Number
+    Default: 1
+    Description: Threshold for Unhealthy Host Count
+
+Resources:
+  # ------------------------------------------------------------
+  # ALB Alarm: Internal ALB - Target 5XX Errors
+  # ------------------------------------------------------------
+  InternalALBTarget5XXAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-internal-alb-target-5xx
+      AlarmDescription: Internal ALB Target 5XX errors exceeded threshold
+      MetricName: HTTPCode_Target_5XX_Count
+      Namespace: AWS/ApplicationELB
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: !Ref Target5XXErrorThreshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !Select
+            - 1
+            - !Split
+              - 'loadbalancer/'
+              - !ImportValue
+                  Fn::Sub: ${ProjectName}-${Environment}-alb-internal-arn
+      AlarmActions:
+        - !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-alert-topic-arn
+      TreatMissingData: notBreaching
+
+  # ------------------------------------------------------------
+  # ALB Alarm: Internal ALB - Unhealthy Hosts
+  # ------------------------------------------------------------
+  InternalALBUnhealthyHostAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-internal-alb-unhealthy-host
+      AlarmDescription: Internal ALB has unhealthy targets
+      MetricName: UnHealthyHostCount
+      Namespace: AWS/ApplicationELB
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: !Ref UnhealthyHostThreshold
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: TargetGroup
+          Value: !Select
+            - 1
+            - !Split
+              - 'targetgroup/'
+              - !ImportValue
+                  Fn::Sub: ${ProjectName}-${Environment}-staff-api-tg-arn
+        - Name: LoadBalancer
+          Value: !Select
+            - 1
+            - !Split
+              - 'loadbalancer/'
+              - !ImportValue
+                  Fn::Sub: ${ProjectName}-${Environment}-alb-internal-arn
+      AlarmActions:
+        - !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-alert-topic-arn
+      TreatMissingData: notBreaching
+
+  # ------------------------------------------------------------
+  # ALB Alarm: Public ALB - Target 5XX Errors
+  # ------------------------------------------------------------
+  PublicALBTarget5XXAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-public-alb-target-5xx
+      AlarmDescription: Public ALB Target 5XX errors exceeded threshold
+      MetricName: HTTPCode_Target_5XX_Count
+      Namespace: AWS/ApplicationELB
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: !Ref Target5XXErrorThreshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !Select
+            - 1
+            - !Split
+              - 'loadbalancer/'
+              - !ImportValue
+                  Fn::Sub: ${ProjectName}-${Environment}-alb-public-arn
+      AlarmActions:
+        - !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-alert-topic-arn
+      TreatMissingData: notBreaching
+
+  # ------------------------------------------------------------
+  # ALB Alarm: Public ALB - Unhealthy Hosts
+  # ------------------------------------------------------------
+  PublicALBUnhealthyHostAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-public-alb-unhealthy-host
+      AlarmDescription: Public ALB has unhealthy targets
+      MetricName: UnHealthyHostCount
+      Namespace: AWS/ApplicationELB
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: !Ref UnhealthyHostThreshold
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: TargetGroup
+          Value: !Select
+            - 1
+            - !Split
+              - 'targetgroup/'
+              - !ImportValue
+                  Fn::Sub: ${ProjectName}-${Environment}-vendor-api-tg-arn
+        - Name: LoadBalancer
+          Value: !Select
+            - 1
+            - !Split
+              - 'loadbalancer/'
+              - !ImportValue
+                  Fn::Sub: ${ProjectName}-${Environment}-alb-public-arn
+      AlarmActions:
+        - !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-alert-topic-arn
+      TreatMissingData: notBreaching
+
+  # ------------------------------------------------------------
+  # ALB Alarm: Public ALB - Response Time (P95)
+  # ------------------------------------------------------------
+  PublicALBResponseTimeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-public-alb-response-time
+      AlarmDescription: Public ALB response time (P95) exceeded threshold
+      MetricName: TargetResponseTime
+      Namespace: AWS/ApplicationELB
+      ExtendedStatistic: p95
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 1.0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !Select
+            - 1
+            - !Split
+              - 'loadbalancer/'
+              - !ImportValue
+                  Fn::Sub: ${ProjectName}-${Environment}-alb-public-arn
+      AlarmActions:
+        - !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-alert-topic-arn
+      TreatMissingData: notBreaching
+
+Outputs:
+  InternalALBTarget5XXAlarmName:
+    Description: Internal ALB Target 5XX Alarm Name
+    Value: !Ref InternalALBTarget5XXAlarm
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-internal-alb-5xx-alarm-name
+
+  PublicALBTarget5XXAlarmName:
+    Description: Public ALB Target 5XX Alarm Name
+    Value: !Ref PublicALBTarget5XXAlarm
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-public-alb-5xx-alarm-name

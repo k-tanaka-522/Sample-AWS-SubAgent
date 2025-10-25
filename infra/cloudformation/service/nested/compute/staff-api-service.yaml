@@ -1,0 +1,147 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'ECS Service - Staff API with Auto Scaling'
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  ECSDesiredCount:
+    Type: Number
+    Default: 1
+    Description: Desired number of ECS tasks
+
+  ECSMinCapacity:
+    Type: Number
+    Default: 1
+    Description: Minimum number of tasks for Auto Scaling
+
+  ECSMaxCapacity:
+    Type: Number
+    Default: 3
+    Description: Maximum number of tasks for Auto Scaling
+
+  CPUTargetValue:
+    Type: Number
+    Default: 70
+    Description: Target CPU utilization for Auto Scaling (%)
+
+  MemoryTargetValue:
+    Type: Number
+    Default: 80
+    Description: Target Memory utilization for Auto Scaling (%)
+
+Resources:
+  # ------------------------------------------------------------
+  # ECS Service - Staff API
+  # ------------------------------------------------------------
+  StaffAPIService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub ${ProjectName}-${Environment}-staff-api
+      Cluster: !ImportValue
+        Fn::Sub: ${ProjectName}-${Environment}-ecs-cluster-name
+      TaskDefinition: !ImportValue
+        Fn::Sub: ${ProjectName}-${Environment}-staff-api-task-def
+      DesiredCount: !Ref ECSDesiredCount
+      LaunchType: FARGATE
+      PlatformVersion: LATEST
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - !ImportValue
+                Fn::Sub: ${ProjectName}-${Environment}-private-subnet-1-id
+            - !ImportValue
+                Fn::Sub: ${ProjectName}-${Environment}-private-subnet-2-id
+          SecurityGroups:
+            - !ImportValue
+                Fn::Sub: ${ProjectName}-${Environment}-ecs-staff-api-sg-id
+      LoadBalancers:
+        - ContainerName: staff-api
+          ContainerPort: 3000
+          TargetGroupArn: !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-staff-api-tg-arn
+      HealthCheckGracePeriodSeconds: 60
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-staff-api-service
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: Staff API ECS Service
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ------------------------------------------------------------
+  # Auto Scaling Target
+  # ------------------------------------------------------------
+  StaffAPIScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: !Ref ECSMaxCapacity
+      MinCapacity: !Ref ECSMinCapacity
+      ResourceId: !Sub service/${ProjectName}-${Environment}-ecs-cluster/${ProjectName}-${Environment}-staff-api
+      RoleARN: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+    DependsOn: StaffAPIService
+
+  # ------------------------------------------------------------
+  # CPU-based Auto Scaling Policy
+  # ------------------------------------------------------------
+  StaffAPICPUScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-${Environment}-staff-api-cpu-scaling
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref StaffAPIScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: !Ref CPUTargetValue
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+  # ------------------------------------------------------------
+  # Memory-based Auto Scaling Policy
+  # ------------------------------------------------------------
+  StaffAPIMemoryScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-${Environment}-staff-api-memory-scaling
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref StaffAPIScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: !Ref MemoryTargetValue
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageMemoryUtilization
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+Outputs:
+  StaffAPIServiceName:
+    Description: Staff API ECS Service Name
+    Value: !GetAtt StaffAPIService.Name
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-staff-api-service-name
+
+  StaffAPIServiceArn:
+    Description: Staff API ECS Service ARN
+    Value: !Ref StaffAPIService
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-staff-api-service-arn

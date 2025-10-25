@@ -10,10 +10,26 @@ echo "CloudFormation テンプレート検証"
 echo "===================================="
 echo ""
 
-TEMPLATES=$(find nested -name "*.yaml" -type f)
-TOTAL=0
-SUCCESS=0
-FAILED=0
+# 親スタックの検証
+echo "[1] Validating: stack.yaml (Master Stack)"
+if aws cloudformation validate-template \
+  --template-body "file://stack.yaml" \
+  > /dev/null 2>&1; then
+  echo "    ✅ Valid"
+  TOTAL=1
+  SUCCESS=1
+  FAILED=0
+else
+  echo "    ❌ Invalid"
+  TOTAL=1
+  SUCCESS=0
+  FAILED=1
+fi
+
+echo ""
+
+# ネステッドスタックの検証
+TEMPLATES=$(find nested -name "*.yaml" -type f | sort)
 
 for TEMPLATE in $TEMPLATES; do
   TOTAL=$((TOTAL + 1))

@@ -1,0 +1,147 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'ECS Service - Vendor API with Auto Scaling'
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  ECSDesiredCount:
+    Type: Number
+    Default: 1
+    Description: Desired number of ECS tasks
+
+  ECSMinCapacity:
+    Type: Number
+    Default: 1
+    Description: Minimum number of tasks for Auto Scaling
+
+  ECSMaxCapacity:
+    Type: Number
+    Default: 3
+    Description: Maximum number of tasks for Auto Scaling
+
+  CPUTargetValue:
+    Type: Number
+    Default: 70
+    Description: Target CPU utilization for Auto Scaling (%)
+
+  MemoryTargetValue:
+    Type: Number
+    Default: 80
+    Description: Target Memory utilization for Auto Scaling (%)
+
+Resources:
+  # ------------------------------------------------------------
+  # ECS Service - Vendor API
+  # ------------------------------------------------------------
+  VendorAPIService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub ${ProjectName}-${Environment}-vendor-api
+      Cluster: !ImportValue
+        Fn::Sub: ${ProjectName}-${Environment}-ecs-cluster-name
+      TaskDefinition: !ImportValue
+        Fn::Sub: ${ProjectName}-${Environment}-vendor-api-task-def
+      DesiredCount: !Ref ECSDesiredCount
+      LaunchType: FARGATE
+      PlatformVersion: LATEST
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets:
+            - !ImportValue
+                Fn::Sub: ${ProjectName}-${Environment}-private-subnet-1-id
+            - !ImportValue
+                Fn::Sub: ${ProjectName}-${Environment}-private-subnet-2-id
+          SecurityGroups:
+            - !ImportValue
+                Fn::Sub: ${ProjectName}-${Environment}-ecs-vendor-api-sg-id
+      LoadBalancers:
+        - ContainerName: vendor-api
+          ContainerPort: 4000
+          TargetGroupArn: !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-vendor-api-tg-arn
+      HealthCheckGracePeriodSeconds: 60
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-vendor-api-service
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: Vendor API ECS Service
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ------------------------------------------------------------
+  # Auto Scaling Target
+  # ------------------------------------------------------------
+  VendorAPIScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: !Ref ECSMaxCapacity
+      MinCapacity: !Ref ECSMinCapacity
+      ResourceId: !Sub service/${ProjectName}-${Environment}-ecs-cluster/${ProjectName}-${Environment}-vendor-api
+      RoleARN: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+    DependsOn: VendorAPIService
+
+  # ------------------------------------------------------------
+  # CPU-based Auto Scaling Policy
+  # ------------------------------------------------------------
+  VendorAPICPUScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-${Environment}-vendor-api-cpu-scaling
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref VendorAPIScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: !Ref CPUTargetValue
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+  # ------------------------------------------------------------
+  # Memory-based Auto Scaling Policy
+  # ------------------------------------------------------------
+  VendorAPIMemoryScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-${Environment}-vendor-api-memory-scaling
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref VendorAPIScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: !Ref MemoryTargetValue
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageMemoryUtilization
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+Outputs:
+  VendorAPIServiceName:
+    Description: Vendor API ECS Service Name
+    Value: !GetAtt VendorAPIService.Name
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-vendor-api-service-name
+
+  VendorAPIServiceArn:
+    Description: Vendor API ECS Service ARN
+    Value: !Ref VendorAPIService
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-vendor-api-service-arn

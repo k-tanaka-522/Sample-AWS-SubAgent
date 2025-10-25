@@ -1,0 +1,206 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Subnets for Service Account VPC (3-tier: Public, Private, Data)
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  VpcId:
+    Type: String
+    Description: VPC ID from vpc-and-igw stack
+
+  PublicSubnet1Cidr:
+    Type: String
+    Description: Public Subnet 1 CIDR
+
+  PublicSubnet2Cidr:
+    Type: String
+    Description: Public Subnet 2 CIDR
+
+  PrivateSubnet1Cidr:
+    Type: String
+    Description: Private Subnet 1 CIDR (Container)
+
+  PrivateSubnet2Cidr:
+    Type: String
+    Description: Private Subnet 2 CIDR (Container)
+
+  DataSubnet1Cidr:
+    Type: String
+    Description: Data Subnet 1 CIDR (Database)
+
+  DataSubnet2Cidr:
+    Type: String
+    Description: Data Subnet 2 CIDR (Database)
+
+Resources:
+  # ==============================================================================
+  # Public Subnets (for ALB)
+  # ==============================================================================
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: !Ref PublicSubnet1Cidr
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-public-1a
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Tier
+          Value: public
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: !Ref PublicSubnet2Cidr
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-public-1c
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Tier
+          Value: public
+
+  # ==============================================================================
+  # Private Subnets (for ECS Fargate)
+  # ==============================================================================
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: !Ref PrivateSubnet1Cidr
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-private-container-1a
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Tier
+          Value: private
+        - Key: Purpose
+          Value: container
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: !Ref PrivateSubnet2Cidr
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-private-container-1c
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Tier
+          Value: private
+        - Key: Purpose
+          Value: container
+
+  # ==============================================================================
+  # Data Subnets (for RDS)
+  # ==============================================================================
+  DataSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: !Ref DataSubnet1Cidr
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-data-1a
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Tier
+          Value: data
+        - Key: Purpose
+          Value: database
+
+  DataSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: !Ref DataSubnet2Cidr
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-data-1c
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Tier
+          Value: data
+        - Key: Purpose
+          Value: database
+
+Outputs:
+  PublicSubnet1Id:
+    Description: Public Subnet 1 ID
+    Value: !Ref PublicSubnet1
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-PublicSubnet1
+
+  PublicSubnet2Id:
+    Description: Public Subnet 2 ID
+    Value: !Ref PublicSubnet2
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-PublicSubnet2
+
+  PrivateSubnet1Id:
+    Description: Private Subnet 1 ID
+    Value: !Ref PrivateSubnet1
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-PrivateSubnet1
+
+  PrivateSubnet2Id:
+    Description: Private Subnet 2 ID
+    Value: !Ref PrivateSubnet2
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-PrivateSubnet2
+
+  DataSubnet1Id:
+    Description: Data Subnet 1 ID
+    Value: !Ref DataSubnet1
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-DataSubnet1
+
+  DataSubnet2Id:
+    Description: Data Subnet 2 ID
+    Value: !Ref DataSubnet2
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-DataSubnet2
+
+  PublicSubnetIds:
+    Description: Public Subnet IDs (comma-separated)
+    Value: !Join [',', [!Ref PublicSubnet1, !Ref PublicSubnet2]]
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-PublicSubnetIds
+
+  PrivateSubnetIds:
+    Description: Private Subnet IDs (comma-separated)
+    Value: !Join [',', [!Ref PrivateSubnet1, !Ref PrivateSubnet2]]
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-PrivateSubnetIds
+
+  DataSubnetIds:
+    Description: Data Subnet IDs (comma-separated)
+    Value: !Join [',', [!Ref DataSubnet1, !Ref DataSubnet2]]
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-DataSubnetIds

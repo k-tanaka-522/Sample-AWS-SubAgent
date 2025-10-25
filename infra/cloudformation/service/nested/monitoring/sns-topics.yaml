@@ -1,0 +1,145 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SNS Topics for CloudWatch Alarms and Notifications'
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  AlertEmail:
+    Type: String
+    Default: 'changeme@example.com'
+    Description: Email address for alarm notifications
+
+Resources:
+  # ------------------------------------------------------------
+  # SNS Topic: CloudWatch Alarms
+  # ------------------------------------------------------------
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub ${ProjectName}-${Environment}-alerts
+      DisplayName: !Sub ${ProjectName} ${Environment} Alerts
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-alerts
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: CloudWatch Alarms Notification
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ------------------------------------------------------------
+  # SNS Topic: Batch Job Notifications
+  # ------------------------------------------------------------
+  BatchNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub ${ProjectName}-${Environment}-batch-notifications
+      DisplayName: !Sub ${ProjectName} ${Environment} Batch Notifications
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-batch-notifications
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: Batch Job Status Notification
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ------------------------------------------------------------
+  # SNS Subscription: Email for Alerts
+  # ------------------------------------------------------------
+  AlertEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      TopicArn: !Ref AlertTopic
+      Endpoint: !Ref AlertEmail
+
+  # ------------------------------------------------------------
+  # SNS Subscription: Email for Batch Notifications
+  # ------------------------------------------------------------
+  BatchEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      TopicArn: !Ref BatchNotificationTopic
+      Endpoint: !Ref AlertEmail
+
+  # ------------------------------------------------------------
+  # SNS Topic Policy: Allow CloudWatch to Publish
+  # ------------------------------------------------------------
+  AlertTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref AlertTopic
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudWatchToPublish
+            Effect: Allow
+            Principal:
+              Service: cloudwatch.amazonaws.com
+            Action:
+              - SNS:Publish
+            Resource: !Ref AlertTopic
+
+  BatchNotificationTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref BatchNotificationTopic
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudWatchToPublish
+            Effect: Allow
+            Principal:
+              Service: cloudwatch.amazonaws.com
+            Action:
+              - SNS:Publish
+            Resource: !Ref BatchNotificationTopic
+          - Sid: AllowECSTaskToPublish
+            Effect: Allow
+            Principal:
+              AWS: !ImportValue
+                Fn::Sub: ${ProjectName}-${Environment}-ecs-task-role-arn
+            Action:
+              - SNS:Publish
+            Resource: !Ref BatchNotificationTopic
+
+Outputs:
+  AlertTopicArn:
+    Description: SNS Topic ARN for CloudWatch Alarms
+    Value: !Ref AlertTopic
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-alert-topic-arn
+
+  AlertTopicName:
+    Description: SNS Topic Name for CloudWatch Alarms
+    Value: !GetAtt AlertTopic.TopicName
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-alert-topic-name
+
+  BatchNotificationTopicArn:
+    Description: SNS Topic ARN for Batch Notifications
+    Value: !Ref BatchNotificationTopic
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-batch-notification-topic-arn
+
+  BatchNotificationTopicName:
+    Description: SNS Topic Name for Batch Notifications
+    Value: !GetAtt BatchNotificationTopic.TopicName
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-batch-notification-topic-name

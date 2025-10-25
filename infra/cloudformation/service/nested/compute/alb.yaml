@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Application Load Balancers (Internal and Public)
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  VpcId:
+    Type: String
+    Description: VPC ID
+
+  PublicSubnet1Id:
+    Type: String
+    Description: Public Subnet 1 ID
+
+  PublicSubnet2Id:
+    Type: String
+    Description: Public Subnet 2 ID
+
+  ALBInternalSecurityGroupId:
+    Type: String
+    Description: Internal ALB Security Group ID
+
+  ALBPublicSecurityGroupId:
+    Type: String
+    Description: Public ALB Security Group ID
+
+  ACMCertificateArn:
+    Type: String
+    Description: ACM Certificate ARN for HTTPS
+    Default: ''
+
+Conditions:
+  HasCertificate: !Not [!Equals [!Ref ACMCertificateArn, '']]
+
+Resources:
+  # ==============================================================================
+  # Internal ALB (職員向け)
+  # ==============================================================================
+  InternalALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub ${ProjectName}-${Environment}-alb-internal
+      Type: application
+      Scheme: internal
+      IpAddressType: ipv4
+      Subnets:
+        - !Ref PublicSubnet1Id
+        - !Ref PublicSubnet2Id
+      SecurityGroups:
+        - !Ref ALBInternalSecurityGroupId
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-alb-internal
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: staff-api
+
+  # ==============================================================================
+  # Public ALB (事業者向け)
+  # ==============================================================================
+  PublicALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub ${ProjectName}-${Environment}-alb-public
+      Type: application
+      Scheme: internet-facing
+      IpAddressType: ipv4
+      Subnets:
+        - !Ref PublicSubnet1Id
+        - !Ref PublicSubnet2Id
+      SecurityGroups:
+        - !Ref ALBPublicSecurityGroupId
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-alb-public
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: vendor-api
+
+Outputs:
+  InternalALBArn:
+    Description: Internal ALB ARN
+    Value: !Ref InternalALB
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-InternalALBArn
+
+  InternalALBDNSName:
+    Description: Internal ALB DNS Name
+    Value: !GetAtt InternalALB.DNSName
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-InternalALBDNS
+
+  PublicALBArn:
+    Description: Public ALB ARN
+    Value: !Ref PublicALB
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-PublicALBArn
+
+  PublicALBDNSName:
+    Description: Public ALB DNS Name
+    Value: !GetAtt PublicALB.DNSName
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-PublicALBDNS

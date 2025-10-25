@@ -7,7 +7,17 @@
       "Bash(git branch:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(tree:*)",
+      "Bash(for file in stack.yaml nested/*/*.yaml)",
+      "Bash(do echo -n \"Checking $file: \")",
+      "Bash(if grep -q \"AWSTemplateFormatVersion\" \"$file\")",
+      "Bash(then echo \"✅\")",
+      "Bash(else echo \"❌\")",
+      "Bash(fi)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

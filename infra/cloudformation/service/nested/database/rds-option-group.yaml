@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: RDS Option Group for PostgreSQL 14
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+Resources:
+  DBOptionGroup:
+    Type: AWS::RDS::OptionGroup
+    Properties:
+      OptionGroupName: !Sub ${ProjectName}-${Environment}-postgres14-options
+      OptionGroupDescription: !Sub Option group for PostgreSQL 14 (${Environment})
+      EngineName: postgres
+      MajorEngineVersion: '14'
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-postgres14-options
+        - Key: Environment
+          Value: !Ref Environment
+
+Outputs:
+  DBOptionGroupName:
+    Description: DB Option Group Name
+    Value: !Ref DBOptionGroup
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-DBOptionGroup

@@ -78,5 +78,17 @@
   {
     "ParameterKey": "BatchTaskMemory",
     "ParameterValue": "2048"
+  },
+  {
+    "ParameterKey": "AlertEmail",
+    "ParameterValue": "changeme@example.com"
+  },
+  {
+    "ParameterKey": "TemplateS3Bucket",
+    "ParameterValue": "changeme-cfn-templates"
+  },
+  {
+    "ParameterKey": "TemplateS3Prefix",
+    "ParameterValue": "cloudformation/service"
   }
 ]

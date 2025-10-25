@@ -1,0 +1,143 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: VPC Endpoints for Service Account (ECR, S3, Secrets Manager)
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  VpcId:
+    Type: String
+    Description: VPC ID
+
+  PrivateSubnet1Id:
+    Type: String
+    Description: Private Subnet 1 ID
+
+  PrivateSubnet2Id:
+    Type: String
+    Description: Private Subnet 2 ID
+
+  VPCEndpointSecurityGroupId:
+    Type: String
+    Description: VPC Endpoint Security Group ID
+
+  PrivateRouteTableId:
+    Type: String
+    Description: Private Route Table ID
+
+Resources:
+  # ==============================================================================
+  # S3 Gateway Endpoint (no extra charge)
+  # ==============================================================================
+  S3GatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PrivateRouteTableId
+
+  # ==============================================================================
+  # ECR API Interface Endpoint
+  # ==============================================================================
+  ECRAPIEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.api
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1Id
+        - !Ref PrivateSubnet2Id
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroupId
+
+  # ==============================================================================
+  # ECR DKR Interface Endpoint
+  # ==============================================================================
+  ECRDKREndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.dkr
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1Id
+        - !Ref PrivateSubnet2Id
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroupId
+
+  # ==============================================================================
+  # Secrets Manager Interface Endpoint
+  # ==============================================================================
+  SecretsManagerEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.secretsmanager
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1Id
+        - !Ref PrivateSubnet2Id
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroupId
+
+  # ==============================================================================
+  # CloudWatch Logs Interface Endpoint
+  # ==============================================================================
+  CloudWatchLogsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VpcId
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1Id
+        - !Ref PrivateSubnet2Id
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroupId
+
+Outputs:
+  S3GatewayEndpointId:
+    Description: S3 Gateway Endpoint ID
+    Value: !Ref S3GatewayEndpoint
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-S3GatewayEndpoint
+
+  ECRAPIEndpointId:
+    Description: ECR API Endpoint ID
+    Value: !Ref ECRAPIEndpoint
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-ECRAPIEndpoint
+
+  ECRDKREndpointId:
+    Description: ECR DKR Endpoint ID
+    Value: !Ref ECRDKREndpoint
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-ECRDKREndpoint
+
+  SecretsManagerEndpointId:
+    Description: Secrets Manager Endpoint ID
+    Value: !Ref SecretsManagerEndpoint
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-SecretsManagerEndpoint
+
+  CloudWatchLogsEndpointId:
+    Description: CloudWatch Logs Endpoint ID
+    Value: !Ref CloudWatchLogsEndpoint
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-CloudWatchLogsEndpoint

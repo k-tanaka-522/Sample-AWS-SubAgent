@@ -1,0 +1,201 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudWatch Alarms for ECS Services'
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  CPUUtilizationThreshold:
+    Type: Number
+    Default: 80
+    Description: Threshold for ECS CPU utilization (%)
+
+  MemoryUtilizationThreshold:
+    Type: Number
+    Default: 80
+    Description: Threshold for ECS Memory utilization (%)
+
+Resources:
+  # ------------------------------------------------------------
+  # ECS Alarm: Staff API - High CPU
+  # ------------------------------------------------------------
+  StaffAPICPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-staff-api-high-cpu
+      AlarmDescription: Staff API ECS Service CPU utilization is high
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: !Ref CPUUtilizationThreshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ServiceName
+          Value: !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-staff-api-service-name
+        - Name: ClusterName
+          Value: !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-ecs-cluster-name
+      AlarmActions:
+        - !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-alert-topic-arn
+      TreatMissingData: notBreaching
+
+  # ------------------------------------------------------------
+  # ECS Alarm: Staff API - High Memory
+  # ------------------------------------------------------------
+  StaffAPIMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-staff-api-high-memory
+      AlarmDescription: Staff API ECS Service Memory utilization is high
+      MetricName: MemoryUtilization
+      Namespace: AWS/ECS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: !Ref MemoryUtilizationThreshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ServiceName
+          Value: !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-staff-api-service-name
+        - Name: ClusterName
+          Value: !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-ecs-cluster-name
+      AlarmActions:
+        - !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-alert-topic-arn
+      TreatMissingData: notBreaching
+
+  # ------------------------------------------------------------
+  # ECS Alarm: Vendor API - High CPU
+  # ------------------------------------------------------------
+  VendorAPICPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-vendor-api-high-cpu
+      AlarmDescription: Vendor API ECS Service CPU utilization is high
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: !Ref CPUUtilizationThreshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ServiceName
+          Value: !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-vendor-api-service-name
+        - Name: ClusterName
+          Value: !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-ecs-cluster-name
+      AlarmActions:
+        - !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-alert-topic-arn
+      TreatMissingData: notBreaching
+
+  # ------------------------------------------------------------
+  # ECS Alarm: Vendor API - High Memory
+  # ------------------------------------------------------------
+  VendorAPIMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-vendor-api-high-memory
+      AlarmDescription: Vendor API ECS Service Memory utilization is high
+      MetricName: MemoryUtilization
+      Namespace: AWS/ECS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: !Ref MemoryUtilizationThreshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ServiceName
+          Value: !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-vendor-api-service-name
+        - Name: ClusterName
+          Value: !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-ecs-cluster-name
+      AlarmActions:
+        - !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-alert-topic-arn
+      TreatMissingData: notBreaching
+
+  # ------------------------------------------------------------
+  # ECS Alarm: Staff API - Service Running Task Count
+  # ------------------------------------------------------------
+  StaffAPIRunningTaskCountAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-staff-api-no-running-tasks
+      AlarmDescription: Staff API ECS Service has no running tasks
+      MetricName: RunningTaskCount
+      Namespace: ECS/ContainerInsights
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: ServiceName
+          Value: !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-staff-api-service-name
+        - Name: ClusterName
+          Value: !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-ecs-cluster-name
+      AlarmActions:
+        - !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-alert-topic-arn
+      TreatMissingData: breaching
+
+  # ------------------------------------------------------------
+  # ECS Alarm: Vendor API - Service Running Task Count
+  # ------------------------------------------------------------
+  VendorAPIRunningTaskCountAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-vendor-api-no-running-tasks
+      AlarmDescription: Vendor API ECS Service has no running tasks
+      MetricName: RunningTaskCount
+      Namespace: ECS/ContainerInsights
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: ServiceName
+          Value: !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-vendor-api-service-name
+        - Name: ClusterName
+          Value: !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-ecs-cluster-name
+      AlarmActions:
+        - !ImportValue
+            Fn::Sub: ${ProjectName}-${Environment}-alert-topic-arn
+      TreatMissingData: breaching
+
+Outputs:
+  StaffAPICPUAlarmName:
+    Description: Staff API High CPU Alarm Name
+    Value: !Ref StaffAPICPUAlarm
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-staff-api-cpu-alarm-name
+
+  VendorAPICPUAlarmName:
+    Description: Vendor API High CPU Alarm Name
+    Value: !Ref VendorAPICPUAlarm
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-vendor-api-cpu-alarm-name

@@ -1,0 +1,195 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFront Distributions for Staff and Vendor SPAs'
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  StaffDomainName:
+    Type: String
+    Default: ''
+    Description: Custom domain name for Staff SPA (optional, e.g., staff.example.com)
+
+  VendorDomainName:
+    Type: String
+    Default: ''
+    Description: Custom domain name for Vendor SPA (optional, e.g., vendor.example.com)
+
+  ACMCertificateArn:
+    Type: String
+    Default: ''
+    Description: ACM Certificate ARN for custom domain (us-east-1 region required)
+
+Conditions:
+  HasStaffCustomDomain: !Not [!Equals [!Ref StaffDomainName, '']]
+  HasVendorCustomDomain: !Not [!Equals [!Ref VendorDomainName, '']]
+  HasACMCertificate: !Not [!Equals [!Ref ACMCertificateArn, '']]
+
+Resources:
+  # ------------------------------------------------------------
+  # CloudFront Distribution: Staff SPA
+  # ------------------------------------------------------------
+  StaffSPADistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub ${ProjectName} ${Environment} Staff SPA Distribution
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_100
+        DefaultRootObject: index.html
+        Aliases: !If
+          - HasStaffCustomDomain
+          - [!Ref StaffDomainName]
+          - !Ref AWS::NoValue
+        ViewerCertificate: !If
+          - HasACMCertificate
+          - AcmCertificateArn: !Ref ACMCertificateArn
+            MinimumProtocolVersion: TLSv1.2_2021
+            SslSupportMethod: sni-only
+          - CloudFrontDefaultCertificate: true
+        Origins:
+          - Id: S3Origin
+            DomainName: !Sub
+              - ${BucketName}.s3.${AWS::Region}.amazonaws.com
+              - BucketName: !ImportValue
+                  Fn::Sub: ${ProjectName}-${Environment}-staff-spa-bucket-name
+            OriginAccessControlId: !ImportValue
+              Fn::Sub: ${ProjectName}-${Environment}-staff-spa-oac-id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # Managed-CachingOptimized
+          OriginRequestPolicyId: 88a5eaf4-2fd4-4709-b370-b4c650ea3fcf  # Managed-CORS-S3Origin
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03  # Managed-SecurityHeadersPolicy
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 300
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 300
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-staff-distribution
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: Staff SPA Distribution
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ------------------------------------------------------------
+  # CloudFront Distribution: Vendor SPA
+  # ------------------------------------------------------------
+  VendorSPADistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub ${ProjectName} ${Environment} Vendor SPA Distribution
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_100
+        DefaultRootObject: index.html
+        Aliases: !If
+          - HasVendorCustomDomain
+          - [!Ref VendorDomainName]
+          - !Ref AWS::NoValue
+        ViewerCertificate: !If
+          - HasACMCertificate
+          - AcmCertificateArn: !Ref ACMCertificateArn
+            MinimumProtocolVersion: TLSv1.2_2021
+            SslSupportMethod: sni-only
+          - CloudFrontDefaultCertificate: true
+        WebACLId: !ImportValue
+          Fn::Sub: ${ProjectName}-${Environment}-waf-web-acl-arn
+        Origins:
+          - Id: S3Origin
+            DomainName: !Sub
+              - ${BucketName}.s3.${AWS::Region}.amazonaws.com
+              - BucketName: !ImportValue
+                  Fn::Sub: ${ProjectName}-${Environment}-vendor-spa-bucket-name
+            OriginAccessControlId: !ImportValue
+              Fn::Sub: ${ProjectName}-${Environment}-vendor-spa-oac-id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # Managed-CachingOptimized
+          OriginRequestPolicyId: 88a5eaf4-2fd4-4709-b370-b4c650ea3fcf  # Managed-CORS-S3Origin
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b31e9d03  # Managed-SecurityHeadersPolicy
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 300
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 300
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-vendor-distribution
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: Vendor SPA Distribution
+        - Key: ManagedBy
+          Value: CloudFormation
+
+Outputs:
+  StaffSPADistributionId:
+    Description: Staff SPA CloudFront Distribution ID
+    Value: !Ref StaffSPADistribution
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-staff-distribution-id
+
+  StaffSPADistributionDomainName:
+    Description: Staff SPA CloudFront Distribution Domain Name
+    Value: !GetAtt StaffSPADistribution.DomainName
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-staff-distribution-domain
+
+  VendorSPADistributionId:
+    Description: Vendor SPA CloudFront Distribution ID
+    Value: !Ref VendorSPADistribution
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-vendor-distribution-id
+
+  VendorSPADistributionDomainName:
+    Description: Vendor SPA CloudFront Distribution Domain Name
+    Value: !GetAtt VendorSPADistribution.DomainName
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-vendor-distribution-domain

@@ -53,11 +53,11 @@
   },
   {
     "ParameterKey": "ECSTaskCpu",
-    "ParameterValue": "256"
+    "ParameterValue": "512"
   },
   {
     "ParameterKey": "ECSTaskMemory",
-    "ParameterValue": "512"
+    "ParameterValue": "1024"
   },
   {
     "ParameterKey": "ECSDesiredCount",
@@ -78,5 +78,17 @@
   {
     "ParameterKey": "BatchTaskMemory",
     "ParameterValue": "4096"
+  },
+  {
+    "ParameterKey": "AlertEmail",
+    "ParameterValue": "changeme@example.com"
+  },
+  {
+    "ParameterKey": "TemplateS3Bucket",
+    "ParameterValue": "changeme-cfn-templates"
+  },
+  {
+    "ParameterKey": "TemplateS3Prefix",
+    "ParameterValue": "cloudformation/service"
   }
 ]

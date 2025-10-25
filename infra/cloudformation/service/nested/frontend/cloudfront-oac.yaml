@@ -1,0 +1,55 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFront Origin Access Control (OAC) for S3 Buckets'
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+Resources:
+  # ------------------------------------------------------------
+  # CloudFront Origin Access Control: Staff SPA
+  # ------------------------------------------------------------
+  StaffSPAOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub ${ProjectName}-${Environment}-staff-spa-oac
+        Description: Origin Access Control for Staff SPA S3 Bucket
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # ------------------------------------------------------------
+  # CloudFront Origin Access Control: Vendor SPA
+  # ------------------------------------------------------------
+  VendorSPAOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub ${ProjectName}-${Environment}-vendor-spa-oac
+        Description: Origin Access Control for Vendor SPA S3 Bucket
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+Outputs:
+  StaffSPAOriginAccessControlId:
+    Description: Staff SPA Origin Access Control ID
+    Value: !Ref StaffSPAOriginAccessControl
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-staff-spa-oac-id
+
+  VendorSPAOriginAccessControlId:
+    Description: Vendor SPA Origin Access Control ID
+    Value: !Ref VendorSPAOriginAccessControl
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-vendor-spa-oac-id

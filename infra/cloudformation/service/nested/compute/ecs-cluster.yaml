@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ECS Fargate Cluster
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+Resources:
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub ${ProjectName}-${Environment}-cluster
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-cluster
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ==============================================================================
+  # CloudWatch Log Groups for ECS
+  # ==============================================================================
+  StaffAPILogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${ProjectName}-${Environment}-staff-api
+      RetentionInDays: !If [IsProd, 30, 7]
+
+  VendorAPILogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${ProjectName}-${Environment}-vendor-api
+      RetentionInDays: !If [IsProd, 30, 7]
+
+  BatchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${ProjectName}-${Environment}-batch
+      RetentionInDays: !If [IsProd, 30, 7]
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, 'prod']
+
+Outputs:
+  ECSClusterName:
+    Description: ECS Cluster Name
+    Value: !Ref ECSCluster
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-ECSCluster
+
+  ECSClusterArn:
+    Description: ECS Cluster ARN
+    Value: !GetAtt ECSCluster.Arn
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-ECSClusterArn
+
+  StaffAPILogGroupName:
+    Description: Staff API Log Group Name
+    Value: !Ref StaffAPILogGroup
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-StaffAPILogGroup
+
+  VendorAPILogGroupName:
+    Description: Vendor API Log Group Name
+    Value: !Ref VendorAPILogGroup
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-VendorAPILogGroup
+
+  BatchLogGroupName:
+    Description: Batch Log Group Name
+    Value: !Ref BatchLogGroup
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-BatchLogGroup

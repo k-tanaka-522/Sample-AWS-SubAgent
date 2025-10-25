@@ -1,0 +1,173 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ALB Target Groups for Staff API and Vendor API
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Description: Environment name
+
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  VpcId:
+    Type: String
+    Description: VPC ID
+
+  InternalALBArn:
+    Type: String
+    Description: Internal ALB ARN
+
+  PublicALBArn:
+    Type: String
+    Description: Public ALB ARN
+
+  ACMCertificateArn:
+    Type: String
+    Description: ACM Certificate ARN for HTTPS
+    Default: ''
+
+Conditions:
+  HasCertificate: !Not [!Equals [!Ref ACMCertificateArn, '']]
+
+Resources:
+  # ==============================================================================
+  # Staff API Target Group
+  # ==============================================================================
+  StaffAPITargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${ProjectName}-${Environment}-staff-api-tg
+      VpcId: !Ref VpcId
+      TargetType: ip
+      Protocol: HTTP
+      Port: 3000
+      HealthCheckEnabled: true
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200'
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '30'
+        - Key: stickiness.enabled
+          Value: 'false'
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-staff-api-tg
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ==============================================================================
+  # Vendor API Target Group
+  # ==============================================================================
+  VendorAPITargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${ProjectName}-${Environment}-vendor-api-tg
+      VpcId: !Ref VpcId
+      TargetType: ip
+      Protocol: HTTP
+      Port: 4000
+      HealthCheckEnabled: true
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200'
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '30'
+        - Key: stickiness.enabled
+          Value: 'false'
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-vendor-api-tg
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ==============================================================================
+  # Internal ALB Listener (HTTPS or HTTP)
+  # ==============================================================================
+  InternalALBListenerHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasCertificate
+    Properties:
+      LoadBalancerArn: !Ref InternalALBArn
+      Protocol: HTTPS
+      Port: 443
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+      Certificates:
+        - CertificateArn: !Ref ACMCertificateArn
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref StaffAPITargetGroup
+
+  InternalALBListenerHTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: !Not [!Condition HasCertificate]
+    Properties:
+      LoadBalancerArn: !Ref InternalALBArn
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref StaffAPITargetGroup
+
+  # ==============================================================================
+  # Public ALB Listener (HTTPS + HTTP redirect)
+  # ==============================================================================
+  PublicALBListenerHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasCertificate
+    Properties:
+      LoadBalancerArn: !Ref PublicALBArn
+      Protocol: HTTPS
+      Port: 443
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+      Certificates:
+        - CertificateArn: !Ref ACMCertificateArn
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref VendorAPITargetGroup
+
+  PublicALBListenerHTTP:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref PublicALBArn
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - !If
+          - HasCertificate
+          - Type: redirect
+            RedirectConfig:
+              Protocol: HTTPS
+              Port: '443'
+              StatusCode: HTTP_301
+          - Type: forward
+            TargetGroupArn: !Ref VendorAPITargetGroup
+
+Outputs:
+  StaffAPITargetGroupArn:
+    Description: Staff API Target Group ARN
+    Value: !Ref StaffAPITargetGroup
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-StaffAPITGArn
+
+  VendorAPITargetGroupArn:
+    Description: Vendor API Target Group ARN
+    Value: !Ref VendorAPITargetGroup
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-VendorAPITGArn
