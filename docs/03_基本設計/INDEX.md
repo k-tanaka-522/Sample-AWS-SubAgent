@@ -2,8 +2,12 @@
 
 **プロジェクト名**: 役所設備管理システム AWS ECS 移行プロジェクト
 **作成日**: 2025-10-25
-**バージョン**: 1.0
+**バージョン**: 1.1
 **ステータス**: PM レビュー待ち
+
+**更新履歴**:
+- v1.1 (2025-10-25): マルチアカウント構成追加（Shared Account + Transit Gateway + Direct Connect）
+- v1.0 (2025-10-25): 初版作成
 
 ---
 
@@ -16,8 +20,11 @@
 - 業務アプリ（職員向けAPI）: 在庫管理、発注管理、レポート出力
 - 事業者アプリ（発注業者向けAPI）: 伝票閲覧・入力
 - 業務バッチ: 月次・年次集計、レポート自動生成
-- インフラ: AWS ECS Fargate + RDS PostgreSQL + Cognito
-- 環境: dev/stg/prod の3環境
+- インフラ:
+  - **Service Account**: AWS ECS Fargate + RDS PostgreSQL + Cognito
+  - **Shared Account**: Transit Gateway + Direct Connect + 組織レベル監査基盤
+- 環境: dev/stg/prod の3環境（Service Account）
+- 拠点接続: 20拠点（各100台の端末）をDirect Connect経由で接続
 
 ### 制約条件
 - 初期構築費用: 300万円以内
@@ -31,14 +38,14 @@
 
 | # | ドキュメント | 概要 | レビュー状況 |
 |---|------------|------|-------------|
-| 01 | [システム構成.md](01_システム構成.md) | 全体構成図、コンポーネント一覧、3環境構成 | 🔄 PMレビュー待ち |
-| 02 | [ネットワーク設計.md](02_ネットワーク設計.md) | VPC、サブネット、ルーティング、NAT Gateway | 🔄 PMレビュー待ち |
+| 01 | [システム構成.md](01_システム構成.md) | **マルチアカウント構成**、全体構成図、コンポーネント一覧、3環境構成 | 🔄 PMレビュー待ち（v1.1） |
+| 02 | [ネットワーク設計.md](02_ネットワーク設計.md) | **Transit Gateway、Direct Connect**、VPC、サブネット、ルーティング、NAT Gateway | 🔄 PMレビュー待ち（v1.1） |
 | 03 | [コンピューティング設計.md](03_コンピューティング設計.md) | ECS Fargate、ALB、オートスケーリング | 🔄 PMレビュー待ち |
 | 04 | [データベース設計.md](04_データベース設計.md) | RDS PostgreSQL、バックアップ戦略、PITR | 🔄 PMレビュー待ち |
 | 05 | [認証認可設計.md](05_認証認可設計.md) | Cognito（職員用・事業者用）、JWT、MFA | 🔄 PMレビュー待ち |
 | 06 | [ストレージ設計.md](06_ストレージ設計.md) | S3（フロントエンド、ログ保管）、CloudFront | 🔄 PMレビュー待ち |
 | 07 | [監視ログ設計.md](07_監視ログ設計.md) | CloudWatch、SNS、アラート、ログライフサイクル | 🔄 PMレビュー待ち |
-| 08 | [セキュリティ設計.md](08_セキュリティ設計.md) | ISMAP準拠、WAF、TLS 1.3、暗号化、監査ログ | 🔄 PMレビュー待ち |
+| 08 | [セキュリティ設計.md](08_セキュリティ設計.md) | **Organizations、GuardDuty、Security Hub**、ISMAP準拠、WAF、TLS 1.3、暗号化、監査ログ | 🔄 PMレビュー待ち（v1.1） |
 | 09 | [デプロイ設計.md](09_デプロイ設計.md) | GitHub Actions、ECSローリングアップデート | 🔄 PMレビュー待ち |
 | 10 | [DR設計.md](10_DR設計.md) | 災害対策、別リージョンバックアップ | 🔄 PMレビュー待ち |
 | **11** | **[パラメーターシート.md](11_パラメーターシート.md)** | **CloudFormation実装時に参照する環境別設定値** | 🔄 PMレビュー待ち |
@@ -103,6 +110,23 @@
 - オートスケーリングで通常時は最小構成、ピーク時のみ拡張
 - Fargate Spot の活用検討（非本番環境）
 
+### ADR-008: マルチアカウント構成採用（v1.1追加）
+**決定**: Shared Account と Service Account の2アカウント構成を採用
+**理由**:
+- 拠点（20拠点、2,000端末）との接続を今後も拡張する可能性があるため、ネットワークハブを分離
+- Transit Gateway を Shared Account に配置し、将来の他サービス接続に備える
+- 組織レベルの監査ログ（CloudTrail、Config、GuardDuty、Security Hub）を Shared Account に集約
+- Service Account が侵害されても、Shared Account の監査ログとネットワーク基盤は保護される
+- ISMAP 準拠のセキュリティガバナンス強化
+
+### ADR-009: Direct Connect 採用（v1.1追加）
+**決定**: 拠点接続に AWS Direct Connect（100Mbps Hosted Connection）を採用
+**理由**:
+- 20拠点からの閉域接続要件を満たす
+- インターネットVPN よりもセキュアで安定した通信
+- Direct Connect Gateway + Transit Gateway 構成で複数VPCへの接続拡張が容易
+- コスト試算: 初期費用 約50万円、月額約2万円（100Mbps）で許容範囲内
+
 ---
 
 ## 技術スタック
@@ -115,11 +139,25 @@
 | データベース | PostgreSQL | 14 | RDS（新規構築） |
 
 ### インフラ（AWS）
+
+#### Shared Account（共有基盤）
+| カテゴリ | サービス | 用途 |
+|---------|---------|------|
+| 組織管理 | AWS Organizations | マルチアカウント一元管理、SCP適用 |
+| ネットワークハブ | Transit Gateway | VPC・拠点間ルーティング |
+| 専用線接続 | Direct Connect | 拠点との閉域接続（100Mbps） |
+| DX ゲートウェイ | Direct Connect Gateway | 複数VPC接続 |
+| 監査ログ（組織） | CloudTrail | 組織全体のAWS API呼び出し記録 |
+| 設定管理（組織） | Config | リソース設定変更の記録 |
+| 脅威検知（組織） | GuardDuty | 不正アクセス・異常検知 |
+| セキュリティ統合（組織） | Security Hub | セキュリティアラート集約 |
+
+#### Service Account（サービスアカウント）
 | カテゴリ | サービス | 用途 |
 |---------|---------|------|
 | コンテナ基盤 | ECS Fargate | アプリケーション実行環境 |
 | データベース | RDS PostgreSQL 14 | データ永続化 |
-| ネットワーク | VPC、Subnets、NAT Gateway | ネットワーク構成 |
+| ネットワーク | VPC、Subnets、NAT Gateway、TGW Attachment | ネットワーク構成 |
 | ロードバランサー | ALB（Application Load Balancer） | トラフィック分散 |
 | 認証 | Amazon Cognito | ユーザー認証（職員用・事業者用） |
 | CDN | CloudFront | フロントエンド配信 |
@@ -129,7 +167,6 @@
 | 監視・ログ | CloudWatch | メトリクス、ログ、アラート |
 | セキュリティ | WAF | Webアプリケーションファイアウォール |
 | 証明書 | ACM | TLS証明書 |
-| 変更管理 | CloudTrail | AWSリソース変更ログ |
 
 ### CI/CD
 | カテゴリ | ツール | 用途 |
