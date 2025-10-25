@@ -1,0 +1,126 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'RDS PostgreSQL Instance'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+  DBInstanceClass:
+    Type: String
+    Description: RDS instance class
+
+  DBAllocatedStorage:
+    Type: Number
+    Description: Allocated storage size in GB
+
+  DBMasterUsername:
+    Type: String
+    Description: Master username
+
+  DBMasterPassword:
+    Type: String
+    NoEcho: true
+    Description: Master password
+
+  DBBackupRetentionPeriod:
+    Type: Number
+    Description: Backup retention period in days
+
+  PITRBackupRetentionPeriod:
+    Type: Number
+    Description: PITR backup retention period in days
+
+  DBSubnetGroupName:
+    Type: String
+    Description: DB subnet group name
+
+  DBParameterGroupName:
+    Type: String
+    Description: DB parameter group name
+
+  VPCSecurityGroupId:
+    Type: String
+    Description: VPC security group ID
+
+  IsMultiAZ:
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+    Description: Whether to create Multi-AZ deployment
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  CreateMultiAZ: !Equals [!Ref IsMultiAZ, 'true']
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # RDS Instance
+  # --------------------------------------------------------------------------
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub ${ProjectName}-${Environment}-db
+      DBInstanceClass: !Ref DBInstanceClass
+      Engine: postgres
+      EngineVersion: '14.11'
+      MasterUsername: !Ref DBMasterUsername
+      MasterUserPassword: !Ref DBMasterPassword
+      AllocatedStorage: !Ref DBAllocatedStorage
+      StorageType: gp3
+      StorageEncrypted: true
+      Iops: 3000
+      DBSubnetGroupName: !Ref DBSubnetGroupName
+      DBParameterGroupName: !Ref DBParameterGroupName
+      VPCSecurityGroups:
+        - !Ref VPCSecurityGroupId
+      MultiAZ: !If [CreateMultiAZ, true, false]
+      BackupRetentionPeriod: !Ref DBBackupRetentionPeriod
+      PreferredBackupWindow: '17:00-18:00'
+      PreferredMaintenanceWindow: 'sun:17:00-sun:18:00'
+      AutoMinorVersionUpgrade: true
+      EnableCloudwatchLogsExports:
+        - postgresql
+        - upgrade
+      DeletionProtection: !If [CreateMultiAZ, true, false]
+      CopyTagsToSnapshot: true
+      PubliclyAccessible: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-db
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  DBInstanceEndpoint:
+    Description: RDS instance endpoint
+    Value: !GetAtt DBInstance.Endpoint.Address
+
+  DBInstancePort:
+    Description: RDS instance port
+    Value: !GetAtt DBInstance.Endpoint.Port
+
+  DBInstanceIdentifier:
+    Description: RDS instance identifier
+    Value: !Ref DBInstance

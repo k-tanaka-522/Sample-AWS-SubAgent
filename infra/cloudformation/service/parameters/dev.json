@@ -1,0 +1,94 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "facilities"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "VpcCidr",
+    "ParameterValue": "10.0.0.0/16"
+  },
+  {
+    "ParameterKey": "AvailabilityZone1",
+    "ParameterValue": "ap-northeast-1a"
+  },
+  {
+    "ParameterKey": "AvailabilityZone2",
+    "ParameterValue": "ap-northeast-1c"
+  },
+  {
+    "ParameterKey": "TransitGatewayId",
+    "ParameterValue": "tgw-XXXXXXXXXXXX"
+  },
+  {
+    "ParameterKey": "DBInstanceClass",
+    "ParameterValue": "db.t4g.micro"
+  },
+  {
+    "ParameterKey": "DBAllocatedStorage",
+    "ParameterValue": "20"
+  },
+  {
+    "ParameterKey": "DBMasterUsername",
+    "ParameterValue": "admin"
+  },
+  {
+    "ParameterKey": "DBMasterPassword",
+    "ParameterValue": "CHANGE_ME_IN_SECRETS_MANAGER"
+  },
+  {
+    "ParameterKey": "DBBackupRetentionPeriod",
+    "ParameterValue": "7"
+  },
+  {
+    "ParameterKey": "PITRBackupRetentionPeriod",
+    "ParameterValue": "7"
+  },
+  {
+    "ParameterKey": "StaffApiTaskCpu",
+    "ParameterValue": "256"
+  },
+  {
+    "ParameterKey": "StaffApiTaskMemory",
+    "ParameterValue": "512"
+  },
+  {
+    "ParameterKey": "StaffApiDesiredCount",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "VendorApiTaskCpu",
+    "ParameterValue": "256"
+  },
+  {
+    "ParameterKey": "VendorApiTaskMemory",
+    "ParameterValue": "512"
+  },
+  {
+    "ParameterKey": "VendorApiDesiredCount",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "BatchTaskCpu",
+    "ParameterValue": "256"
+  },
+  {
+    "ParameterKey": "BatchTaskMemory",
+    "ParameterValue": "512"
+  },
+  {
+    "ParameterKey": "ECRRepositoryUri",
+    "ParameterValue": "123456789012.dkr.ecr.ap-northeast-1.amazonaws.com/facilities"
+  },
+  {
+    "ParameterKey": "AlertEmail",
+    "ParameterValue": "dev-team@example.com"
+  },
+  {
+    "ParameterKey": "TemplateBucketName",
+    "ParameterValue": "facilities-cloudformation-templates"
+  }
+]

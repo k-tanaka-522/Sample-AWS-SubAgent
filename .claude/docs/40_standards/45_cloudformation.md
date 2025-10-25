@@ -161,96 +161,199 @@ Resources:
 
 ## ディレクトリ構造
 
-### 推奨構造（3原則ベース + ネスト構成 + README インデックス）
+### 推奨構造（ライフサイクル別スタック + 再利用可能テンプレート）
 
 ```
-infra/cloudformation/service/
-├── README.md  ← ★ インデックス（3原則の説明、よくある変更の対応表）
-├── stack.yaml (親スタック)
-├── parameters/                    # 環境差分を集約
-│   ├── dev.json
-│   └── prod.json
-└── nested/
-    ├── network/
-    │   ├── README.md                    # ネットワーク層のインデックス
-    │   ├── vpc-and-igw.yaml             # VPC+IGW（密結合、初回のみ、1個）
-    │   ├── subnets.yaml                 # Subnets（別メニュー、たまに追加、増える）
-    │   ├── route-tables.yaml            # Route Tables（別メニュー、たまに変更）
-    │   ├── nat-gateways.yaml            # NAT GW（別メニュー、初回のみ、高額）
-    │   └── security-groups/             # ★ ディレクトリ（激増する）
-    │       ├── alb-sg.yaml
-    │       ├── ecs-sg.yaml
-    │       └── rds-sg.yaml
-    ├── database/
-    │   ├── README.md
-    │   ├── rds-instance.yaml            # RDS（別メニュー、たまに変更、1個）
-    │   └── rds-security-group.yaml      # RDS SG（設定複雑なので分離）
-    ├── compute/
-    │   ├── README.md                    # コンピュート層のインデックス
-    │   ├── ecr-repositories.yaml        # ECR（別メニュー、たまに追加、増える）
-    │   ├── ecs-cluster.yaml             # Cluster（別メニュー、初回のみ、1個）
-    │   ├── ecs-task-public-web.yaml     # Task（頻繁に変更、サービス別）
-    │   ├── ecs-service-public-web.yaml  # Service（たまに変更、サービス別）
-    │   ├── ecs-task-admin-api.yaml
-    │   ├── ecs-service-admin-api.yaml
-    │   └── alb.yaml                     # ALB+TG+Listener（密結合、1個）
-    └── monitoring/
-        ├── README.md
-        ├── cloudwatch-log-groups.yaml      # Log Groups（別メニュー、増える）
-        ├── cloudwatch-alarms-ecs.yaml      # Alarms（激増、サービス別）
-        ├── cloudwatch-alarms-rds.yaml
-        ├── cloudwatch-alarms-alb.yaml
-        └── eventbridge-rules.yaml          # EventBridge（別メニュー、増える）
+infra/cloudformation/
+├── README.md                        # 全体インデックス、3原則の説明、よくある変更の対応表
+├── stacks/                          # ライフサイクル別スタック定義（デプロイ単位）⭐
+│   ├── 01-network/                  # 年単位（初回のみ、慎重に変更）
+│   │   ├── main.yaml                # 親スタック（templates/network/*.yaml を参照）
+│   │   └── README.md                # なぜこのスタックに分けたか、デプロイ戦略
+│   ├── 02-database/                 # 月単位（たまに変更）
+│   │   ├── main.yaml                # 親スタック（templates/database/*.yaml を参照）
+│   │   └── README.md
+│   ├── 03-compute-base/             # 月単位（ECS Cluster, ALB等）
+│   │   ├── main.yaml                # 親スタック（templates/compute/cluster.yaml等を参照）
+│   │   └── README.md
+│   └── 04-compute-app/              # 週単位（Task Definition, Service、頻繁に変更）
+│       ├── main.yaml                # 親スタック（templates/compute/ecs-task-*.yaml等を参照）
+│       └── README.md
+├── templates/                       # 再利用可能なネストスタック（実体）⭐
+│   ├── network/
+│   │   ├── vpc-and-igw.yaml         # VPC+IGW（密結合、初回のみ、1個）
+│   │   ├── subnets.yaml             # Subnets（別メニュー、たまに追加、増える）
+│   │   ├── route-tables.yaml        # Route Tables（別メニュー、たまに変更）
+│   │   ├── nat-gateways.yaml        # NAT GW（別メニュー、初回のみ、高額）
+│   │   └── security-groups/         # ★ ディレクトリ（激増する）
+│   │       ├── alb-sg.yaml
+│   │       ├── ecs-sg.yaml
+│   │       └── rds-sg.yaml
+│   ├── database/
+│   │   ├── rds-instance.yaml        # RDS（別メニュー、たまに変更、1個）
+│   │   └── rds-security-group.yaml  # RDS SG（設定複雑なので分離）
+│   ├── compute/
+│   │   ├── ecr-repositories.yaml    # ECR（別メニュー、たまに追加、増える）
+│   │   ├── ecs-cluster.yaml         # Cluster（別メニュー、初回のみ、1個）
+│   │   ├── ecs-task-public-web.yaml # Task（頻繁に変更、サービス別）
+│   │   ├── ecs-service-public-web.yaml # Service（たまに変更、サービス別）
+│   │   ├── ecs-task-admin-api.yaml
+│   │   ├── ecs-service-admin-api.yaml
+│   │   └── alb.yaml                 # ALB+TG+Listener（密結合、1個）
+│   └── monitoring/
+│       ├── cloudwatch-log-groups.yaml   # Log Groups（別メニュー、増える）
+│       ├── cloudwatch-alarms-ecs.yaml   # Alarms（激増、サービス別）
+│       ├── cloudwatch-alarms-rds.yaml
+│       ├── cloudwatch-alarms-alb.yaml
+│       └── eventbridge-rules.yaml       # EventBridge（別メニュー、増える）
+└── parameters/                      # 環境差分を集約 ⭐
+    ├── dev.json
+    ├── stg.json
+    └── prd.json
 ```
+
+### 3つのディレクトリの役割
+
+| ディレクトリ | 役割 | 分け方 | 例 |
+|------------|------|--------|---|
+| **stacks/** | デプロイ単位（親スタック） | ライフサイクル（変更頻度） | 01-network（年1回）、04-compute-app（週数回） |
+| **templates/** | 実装（ネストスタック） | 機能別 + 3原則 | network/vpc.yaml、compute/ecs-task.yaml |
+| **parameters/** | 環境差分 | 環境別 | dev.json、stg.json、prd.json |
+
+### stacks/ と templates/ の対応関係
+
+**stacks/01-network/main.yaml（親スタック）:**
+```yaml
+Resources:
+  VPCStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://s3.amazonaws.com/${TemplateBucket}/templates/network/vpc-and-igw.yaml
+      Parameters:
+        Environment: !Ref Environment
+        VpcCidr: !Ref VpcCidr
+
+  SubnetsStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://s3.amazonaws.com/${TemplateBucket}/templates/network/subnets.yaml
+      Parameters:
+        VpcId: !GetAtt VPCStack.Outputs.VpcId
+```
+
+**templates/network/vpc-and-igw.yaml（ネストスタック、再利用可能）:**
+```yaml
+Parameters:
+  Environment:
+    Type: String
+  VpcCidr:
+    Type: String
+
+Resources:
+  ServiceVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    # ...
+
+Outputs:
+  VpcId:
+    Value: !Ref ServiceVPC
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-VpcId
+```
+
+### プロジェクト規模別の推奨構成
+
+#### 小規模プロジェクト（リソース数が少ない、変更頻度が一定）
+
+```
+infra/cloudformation/
+├── README.md
+├── stacks/
+│   └── main.yaml                    # 全リソースを1つのスタックで管理 ⭐
+├── templates/                       # ネストスタックで機能分割
+│   ├── network/
+│   │   └── vpc-and-subnets.yaml
+│   ├── compute/
+│   │   └── ecs.yaml
+│   └── database/
+│       └── rds.yaml
+└── parameters/
+    ├── dev.json
+    └── prd.json
+```
+
+**特徴**:
+- スタックは1つ（`stacks/main.yaml`）
+- ライフサイクル分割は不要（リソース数が少ない）
+- templates/ で機能分割のみ（メンテナンス性確保）
+
+#### 中〜大規模プロジェクト（リソース数が多い、変更頻度が異なる）
+
+前述の「ライフサイクル別スタック」構成を使用。
 
 ### README.md インデックスの例
 
-**`service/README.md`**:
+**`infra/cloudformation/README.md`**:
 ```markdown
-# Service Account CloudFormation Templates
+# CloudFormation Templates
 
-## 📁 構成（3原則ベース）
+## 📁 構成（ライフサイクル別スタック）
 
-### ネットワーク層 (`nested/network/`)
-- **VPC と IGW** → `vpc-and-igw.yaml` （密結合）
-- **Subnets** → `subnets.yaml` （増える可能性）
-- **Security Groups** → `security-groups/*.yaml` （激増）
+### スタック構成
+| スタック | 変更頻度 | デプロイ戦略 | 含まれるリソース |
+|---------|--------|------------|----------------|
+| 01-network | 年1回 | 手動、複数人承認 | VPC, Subnets, NAT GW, Security Groups |
+| 02-database | 月1回 | 手動、1人承認 | RDS, DynamoDB |
+| 03-compute-base | 月1回 | 手動、1人承認 | ECS Cluster, ALB |
+| 04-compute-app | 週数回 | 自動（main マージ時） | Task Definition, ECS Service |
 
-### コンピュート層 (`nested/compute/`)
-- **ECS Cluster** → `ecs-cluster.yaml` （初回のみ）
-- **ECS Task** → `ecs-task-*.yaml` （頻繁に変更、サービス別）
-- **ALB** → `alb.yaml` （ALB+TG+Listener、密結合）
+### テンプレート構成（templates/）
+- **network/** - VPC、サブネット、セキュリティグループ（3原則ベース）
+- **database/** - RDS、バックアップ設定
+- **compute/** - ECS、ALB、タスク定義（サービス別）
+- **monitoring/** - CloudWatch、EventBridge（サービス別）
 
 ## 🔍 よくある変更
 
-| やりたいこと | 編集するファイル |
-|------------|----------------|
-| VPC の CIDR を変更 | `nested/network/vpc-and-igw.yaml` |
-| ECS のタスク定義変更 | `nested/compute/ecs-task-public-web.yaml` |
-| ALB のリスナールール追加 | `nested/compute/alb.yaml` |
-| CloudWatch アラーム追加 | `nested/monitoring/cloudwatch-alarms-ecs.yaml` |
+| やりたいこと | 編集するファイル | デプロイするスタック |
+|------------|----------------|-------------------|
+| VPC の CIDR を変更 | `templates/network/vpc-and-igw.yaml` | 01-network |
+| RDS のインスタンスクラス変更 | `parameters/prd.json` | 02-database |
+| ECS のタスク定義変更 | `templates/compute/ecs-task-public-web.yaml` | 04-compute-app |
+| CloudWatch アラーム追加 | `templates/monitoring/cloudwatch-alarms-ecs.yaml` | 04-compute-app |
 ```
 
 ### 使い方
 
+#### ライフサイクル別スタックのデプロイ順序
+
 ```bash
-# 1. Network Stack（最初、滅多に更新しない）
-aws cloudformation deploy \
-  --stack-name myapp-dev-network \
-  --template-file stacks/network/main.yaml \
-  --parameter-overrides file://parameters/dev.json
+# 1. Network Stack（最初、年1回程度）
+./scripts/deploy.sh dev 01-network
 
-# 2. Storage Stack（時々更新）
-aws cloudformation deploy \
-  --stack-name myapp-dev-storage \
-  --template-file stacks/storage/main.yaml \
-  --parameter-overrides file://parameters/dev.json
+# 2. Database Stack（月1回程度）
+./scripts/deploy.sh dev 02-database
 
-# 3. Compute Stack（頻繁に更新）
-aws cloudformation deploy \
-  --stack-name myapp-dev-compute \
-  --template-file stacks/compute/main.yaml \
-  --parameter-overrides file://parameters/dev.json
+# 3. Compute Base Stack（月1回程度）
+./scripts/deploy.sh dev 03-compute-base
+
+# 4. Compute App Stack（週数回、頻繁に更新）
+./scripts/deploy.sh dev 04-compute-app
+```
+
+#### 全スタック一括デプロイ
+
+```bash
+# 依存関係順に全スタックデプロイ
+./scripts/deploy-all.sh dev
 ```
 
 ### parameters/dev.json の例（環境差分を集約）
@@ -554,7 +657,7 @@ set -euo pipefail
 # CloudFormation Change Set作成
 # ==============================================================================
 # 使い方:
-#   ./scripts/create-changeset.sh dev network
+#   ./scripts/create-changeset.sh dev 01-network
 # ==============================================================================
 
 ENVIRONMENT=$1
@@ -562,6 +665,7 @@ STACK_TYPE=$2
 
 if [ -z "$ENVIRONMENT" ] || [ -z "$STACK_TYPE" ]; then
   echo "Usage: $0 <environment> <stack-type>"
+  echo "  Example: $0 dev 01-network"
   exit 1
 fi
 
@@ -996,7 +1100,7 @@ echo "✅ Import completed: ${STACK_NAME}"
 ]
 ```
 
-### 依存関係の順序制御
+### 依存関係の順序制御（deploy-all.sh）
 
 **複数スタックを順番にデプロイ:**
 
@@ -1005,26 +1109,30 @@ echo "✅ Import completed: ${STACK_NAME}"
 set -euo pipefail
 
 # ==============================================================================
-# 全スタックデプロイ（依存関係順）
+# 全スタックデプロイ（ライフサイクル順、依存関係順）
 # ==============================================================================
 
 ENVIRONMENT=$1
 
 if [ -z "$ENVIRONMENT" ]; then
   echo "Usage: $0 <environment>"
+  echo "  Example: $0 dev"
   exit 1
 fi
 
-echo "Deploying all stacks in order..."
+echo "Deploying all stacks in lifecycle order..."
 
-# 1. Network Stack（他のスタックが依存）
-./scripts/deploy.sh ${ENVIRONMENT} network
+# 1. Network Stack（初回のみ、他のスタックが依存）
+./scripts/deploy.sh ${ENVIRONMENT} 01-network
 
-# 2. Storage Stack（Network Stackに依存）
-./scripts/deploy.sh ${ENVIRONMENT} storage
+# 2. Database Stack（Network Stackに依存）
+./scripts/deploy.sh ${ENVIRONMENT} 02-database
 
-# 3. Compute Stack（Network, Storage Stackに依存）
-./scripts/deploy.sh ${ENVIRONMENT} compute
+# 3. Compute Base Stack（Network Stackに依存）
+./scripts/deploy.sh ${ENVIRONMENT} 03-compute-base
+
+# 4. Compute App Stack（Compute Base Stackに依存、頻繁に更新）
+./scripts/deploy.sh ${ENVIRONMENT} 04-compute-app
 
 echo "✅ All stacks deployed successfully"
 ```
@@ -1046,15 +1154,16 @@ echo "✅ All stacks deployed successfully"
 
 ```bash
 # dry-run（Change Set確認のみ）
-./scripts/diff.sh dev network
+./scripts/diff.sh dev 01-network
 
-# dev環境にデプロイ
-./scripts/deploy.sh dev network
-./scripts/deploy.sh dev storage
-./scripts/deploy.sh dev compute
+# dev環境にデプロイ（ライフサイクル順）
+./scripts/deploy.sh dev 01-network
+./scripts/deploy.sh dev 02-database
+./scripts/deploy.sh dev 03-compute-base
+./scripts/deploy.sh dev 04-compute-app
 
 # prod環境にデプロイ（確認プロンプトあり）
-./scripts/deploy.sh prod network
+./scripts/deploy.sh prod 01-network
 ```
 
 ### テンプレート検証
@@ -1066,7 +1175,7 @@ echo "✅ All stacks deployed successfully"
 ### ロールバック
 
 ```bash
-./scripts/rollback.sh dev compute
+./scripts/rollback.sh dev 04-compute-app
 ```
 
 ### 全スタック一括デプロイ
@@ -1075,14 +1184,16 @@ echo "✅ All stacks deployed successfully"
 ./scripts/deploy-all.sh dev
 ```
 
-## スタック依存関係
+## スタック依存関係（ライフサイクル順）
 
 ```
-network (VPC, Subnets, Security Groups)
+01-network (VPC, Subnets, Security Groups) ← 年1回
   ↓
-storage (RDS, S3)
+02-database (RDS, DynamoDB) ← 月1回
   ↓
-compute (ECS, ALB)
+03-compute-base (ECS Cluster, ALB) ← 月1回
+  ↓
+04-compute-app (Task Definition, Service) ← 週数回
 ```
 ```
 
@@ -1090,9 +1201,18 @@ compute (ECS, ALB)
 
 ## CI/CDパイプライン統合
 
-### GitHub Actions例（責務分離パターン）
+### ライフサイクル別デプロイ戦略
 
-**Pull Request時（dry-runのみ）:**
+| スタック | 変更頻度 | トリガー | 承認 | デプロイ戦略 |
+|---------|--------|---------|------|------------|
+| 01-network | 年1回 | 手動のみ | 複数人 | 手動トリガー + Change Set確認 + 複数人承認 |
+| 02-database | 月1回 | 手動のみ | 1人 | 手動トリガー + Change Set確認 + 1人承認 |
+| 03-compute-base | 月1回 | 手動のみ | 1人 | 手動トリガー + Change Set確認 + 1人承認 |
+| 04-compute-app | 週数回 | main マージ | dry-run | PR時 dry-run → main マージで自動デプロイ |
+
+### GitHub Actions例（ライフサイクル別パターン）
+
+#### 1. Pull Request時（全スタック dry-run）
 
 ```yaml
 name: CloudFormation Dry-Run
@@ -1105,6 +1225,9 @@ on:
 jobs:
   dry-run:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        stack: ['01-network', '02-database', '03-compute-base', '04-compute-app']
     steps:
       - uses: actions/checkout@v3
 
@@ -1119,31 +1242,30 @@ jobs:
         run: ./scripts/validate.sh
 
       - name: Create Change Set
-        run: ./scripts/create-changeset.sh dev network
+        run: ./scripts/create-changeset.sh dev ${{ matrix.stack }}
 
       - name: Describe Change Set (dry-run)
-        run: ./scripts/describe-changeset.sh dev network
+        run: ./scripts/describe-changeset.sh dev ${{ matrix.stack }}
 
       - name: Save Change Set log
-        run: ./scripts/save-changeset-log.sh dev network
-
-      # Change Set は実行しない（dry-runのみ）
+        run: ./scripts/save-changeset-log.sh dev ${{ matrix.stack }}
 ```
 
-**main ブランチマージ時（自動デプロイ）:**
+#### 2. main マージ時（04-compute-app のみ自動デプロイ）
 
 ```yaml
-name: CloudFormation Deploy
+name: CloudFormation Deploy Compute App
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'infra/cloudformation/**'
+      - 'infra/cloudformation/templates/compute/**'
+      - 'infra/cloudformation/stacks/04-compute-app/**'
 
 jobs:
-  deploy-dev:
+  deploy-compute-app:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -1158,22 +1280,15 @@ jobs:
       - name: Validate templates
         run: ./scripts/validate.sh
 
-      - name: Create Change Set
-        run: ./scripts/create-changeset.sh dev network
+      - name: Deploy Compute App Stack
+        run: ./scripts/deploy.sh dev 04-compute-app
 
-      - name: Describe Change Set
-        run: ./scripts/describe-changeset.sh dev network
-
-      - name: Execute Change Set
-        run: ./scripts/execute-changeset.sh dev network
-
-      # 失敗時は自動ロールバック
       - name: Rollback on failure
         if: failure()
-        run: ./scripts/rollback.sh dev network
+        run: ./scripts/rollback.sh dev 04-compute-app
 ```
 
-**本番デプロイ（手動承認必須）:**
+#### 3. 本番デプロイ（手動トリガー、承認必須）
 
 ```yaml
 name: CloudFormation Deploy to Production
@@ -1186,15 +1301,16 @@ on:
         required: true
         type: choice
         options:
-          - network
-          - storage
-          - compute
+          - 01-network
+          - 02-database
+          - 03-compute-base
+          - 04-compute-app
 
 jobs:
   deploy-prd:
     runs-on: ubuntu-latest
     environment:
-      name: production  # GitHub環境保護ルール適用
+      name: production  # GitHub環境保護ルール適用（承認必須）
     steps:
       - uses: actions/checkout@v3
 
@@ -1211,12 +1327,22 @@ jobs:
       - name: Describe Change Set
         run: ./scripts/describe-changeset.sh prd ${{ github.event.inputs.stack-type }}
 
-      # GitHub環境保護ルールで承認必須
+      # GitHub環境保護ルールで承認必須（01-network は複数人承認推奨）
       - name: Execute Change Set
         run: ./scripts/execute-changeset.sh prd ${{ github.event.inputs.stack-type }}
 
       - name: Save Change Set log to S3
         run: ./scripts/save-changeset-log.sh prd ${{ github.event.inputs.stack-type }}
+```
+
+**GitHub環境保護ルールの設定例**:
+
+| 環境 | スタック | 必要な承認者数 | 承認者 |
+|-----|---------|-------------|--------|
+| production | 01-network | 2人以上 | SRE Lead + 開発Lead |
+| production | 02-database | 1人 | SRE Lead |
+| production | 03-compute-base | 1人 | SRE Lead |
+| production | 04-compute-app | 1人 | SRE or Lead Dev |
 ```
 
 ---

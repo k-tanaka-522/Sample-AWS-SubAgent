@@ -1,0 +1,133 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Security Groups - ALB, ECS, RDS'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+  VpcId:
+    Type: String
+    Description: VPC ID
+
+  VpcCidr:
+    Type: String
+    Description: VPC CIDR block
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # ALB Security Group
+  # --------------------------------------------------------------------------
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${ProjectName}-${Environment}-alb-sg
+      GroupDescription: Security group for Application Load Balancer
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # HTTPS from Internet (vendor-api: internet-facing)
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS from Internet
+        # HTTPS from On-premises (staff-api: internal)
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 172.16.0.0/16
+          Description: HTTPS from On-premises via Transit Gateway
+      SecurityGroupEgress:
+        # Allow all outbound
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-alb-sg
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # ECS Security Group
+  # --------------------------------------------------------------------------
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${ProjectName}-${Environment}-ecs-sg
+      GroupDescription: Security group for ECS Fargate tasks
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # HTTP from ALB
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+          Description: HTTP from ALB
+      SecurityGroupEgress:
+        # Allow all outbound (for NAT Gateway, RDS, Secrets Manager, etc.)
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-ecs-sg
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # RDS Security Group
+  # --------------------------------------------------------------------------
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${ProjectName}-${Environment}-rds-sg
+      GroupDescription: Security group for RDS PostgreSQL
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # PostgreSQL from ECS
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref ECSSecurityGroup
+          Description: PostgreSQL from ECS
+      SecurityGroupEgress:
+        # No outbound (RDS does not initiate connections)
+        []
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-rds-sg
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  ALBSecurityGroupId:
+    Description: ALB Security Group ID
+    Value: !Ref ALBSecurityGroup
+
+  ECSSecurityGroupId:
+    Description: ECS Security Group ID
+    Value: !Ref ECSSecurityGroup
+
+  RDSSecurityGroupId:
+    Description: RDS Security Group ID
+    Value: !Ref RDSSecurityGroup

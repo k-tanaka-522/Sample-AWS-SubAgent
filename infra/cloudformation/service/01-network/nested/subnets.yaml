@@ -1,0 +1,214 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Subnets - Public, Private, DB'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+  VpcId:
+    Type: String
+    Description: VPC ID
+
+  VpcCidr:
+    Type: String
+    Description: VPC CIDR block
+
+  AvailabilityZone1:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Description: First Availability Zone
+
+  AvailabilityZone2:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Description: Second Availability Zone
+
+  IsMultiAZ:
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+    Description: Whether to create resources in multiple AZs
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  CreateMultiAZ: !Equals [!Ref IsMultiAZ, 'true']
+
+# ==============================================================================
+# Mappings
+# ==============================================================================
+Mappings:
+  SubnetConfig:
+    dev:
+      PublicSubnet1Cidr: 10.0.0.0/24
+      PrivateSubnet1Cidr: 10.0.2.0/24
+      DBSubnet1Cidr: 10.0.4.0/24
+    stg:
+      PublicSubnet1Cidr: 10.1.0.0/24
+      PublicSubnet2Cidr: 10.1.1.0/24
+      PrivateSubnet1Cidr: 10.1.2.0/24
+      PrivateSubnet2Cidr: 10.1.3.0/24
+      DBSubnet1Cidr: 10.1.4.0/24
+      DBSubnet2Cidr: 10.1.5.0/24
+    prod:
+      PublicSubnet1Cidr: 10.2.0.0/24
+      PublicSubnet2Cidr: 10.2.1.0/24
+      PrivateSubnet1Cidr: 10.2.2.0/24
+      PrivateSubnet2Cidr: 10.2.3.0/24
+      DBSubnet1Cidr: 10.2.4.0/24
+      DBSubnet2Cidr: 10.2.5.0/24
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # Public Subnet 1 (AZ-a)
+  # --------------------------------------------------------------------------
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: !FindInMap [SubnetConfig, !Ref Environment, PublicSubnet1Cidr]
+      AvailabilityZone: !Ref AvailabilityZone1
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-public-subnet-1
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Public Subnet 2 (AZ-c) - Multi-AZ only
+  # --------------------------------------------------------------------------
+  PublicSubnet2:
+    Condition: CreateMultiAZ
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: !FindInMap [SubnetConfig, !Ref Environment, PublicSubnet2Cidr]
+      AvailabilityZone: !Ref AvailabilityZone2
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-public-subnet-2
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Private Subnet 1 (AZ-a)
+  # --------------------------------------------------------------------------
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: !FindInMap [SubnetConfig, !Ref Environment, PrivateSubnet1Cidr]
+      AvailabilityZone: !Ref AvailabilityZone1
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-private-subnet-1
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Private Subnet 2 (AZ-c) - Multi-AZ only
+  # --------------------------------------------------------------------------
+  PrivateSubnet2:
+    Condition: CreateMultiAZ
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: !FindInMap [SubnetConfig, !Ref Environment, PrivateSubnet2Cidr]
+      AvailabilityZone: !Ref AvailabilityZone2
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-private-subnet-2
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # DB Subnet 1 (AZ-a)
+  # --------------------------------------------------------------------------
+  DBSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: !FindInMap [SubnetConfig, !Ref Environment, DBSubnet1Cidr]
+      AvailabilityZone: !Ref AvailabilityZone1
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-db-subnet-1
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # DB Subnet 2 (AZ-c) - Multi-AZ only
+  # --------------------------------------------------------------------------
+  DBSubnet2:
+    Condition: CreateMultiAZ
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: !FindInMap [SubnetConfig, !Ref Environment, DBSubnet2Cidr]
+      AvailabilityZone: !Ref AvailabilityZone2
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-db-subnet-2
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  PublicSubnet1Id:
+    Description: Public Subnet 1 ID
+    Value: !Ref PublicSubnet1
+
+  PublicSubnet2Id:
+    Condition: CreateMultiAZ
+    Description: Public Subnet 2 ID
+    Value: !Ref PublicSubnet2
+
+  PrivateSubnet1Id:
+    Description: Private Subnet 1 ID
+    Value: !Ref PrivateSubnet1
+
+  PrivateSubnet2Id:
+    Condition: CreateMultiAZ
+    Description: Private Subnet 2 ID
+    Value: !Ref PrivateSubnet2
+
+  DBSubnet1Id:
+    Description: DB Subnet 1 ID
+    Value: !Ref DBSubnet1
+
+  DBSubnet2Id:
+    Condition: CreateMultiAZ
+    Description: DB Subnet 2 ID
+    Value: !Ref DBSubnet2

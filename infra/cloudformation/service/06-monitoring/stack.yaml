@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Monitoring Stack - CloudWatch Alarms, SNS Topic'
+
+# ==============================================================================
+# Metadata
+# ==============================================================================
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Project Configuration
+        Parameters:
+          - ProjectName
+          - Environment
+      - Label:
+          default: Notification Configuration
+        Parameters:
+          - AlertEmail
+      - Label:
+          default: S3 Template Bucket
+        Parameters:
+          - TemplateBucketName
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Default: facilities
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Default: dev
+    Description: Environment name
+
+  AlertEmail:
+    Type: String
+    Description: Email address for alarm notifications
+
+  TemplateBucketName:
+    Type: String
+    Description: S3 bucket name for nested templates
+
+# ==============================================================================
+# Resources (Nested Stacks)
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # SNS Topic Stack
+  # --------------------------------------------------------------------------
+  SNSTopicStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/06-monitoring/nested/sns-topic.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        AlertEmail: !Ref AlertEmail
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-sns-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # CloudWatch Alarms Stack
+  # --------------------------------------------------------------------------
+  CloudWatchAlarmsStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: SNSTopicStack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/06-monitoring/nested/cloudwatch-alarms.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        SNSTopicArn: !GetAtt SNSTopicStack.Outputs.SNSTopicArn
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-alarms-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  SNSTopicArn:
+    Description: SNS Topic ARN for Alarms
+    Value: !GetAtt SNSTopicStack.Outputs.SNSTopicArn
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-SNSTopicArn

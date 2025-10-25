@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Transit Gateway Attachment - Connect Service VPC to Shared Account TGW'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+  TransitGatewayId:
+    Type: String
+    Description: Transit Gateway ID (from Shared Account)
+
+  VpcId:
+    Type: String
+    Description: VPC ID
+
+  PrivateSubnet1Id:
+    Type: String
+    Description: Private Subnet 1 ID
+
+  PrivateSubnet2Id:
+    Type: String
+    Default: ''
+    Description: Private Subnet 2 ID (optional for Multi-AZ)
+
+  PrivateRouteTable1Id:
+    Type: String
+    Description: Private Route Table 1 ID
+
+  PrivateRouteTable2Id:
+    Type: String
+    Default: ''
+    Description: Private Route Table 2 ID (optional for Multi-AZ)
+
+  IsMultiAZ:
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+    Description: Whether to create resources in multiple AZs
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  CreateMultiAZ: !Equals [!Ref IsMultiAZ, 'true']
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # Transit Gateway Attachment
+  # --------------------------------------------------------------------------
+  TransitGatewayAttachment:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties:
+      TransitGatewayId: !Ref TransitGatewayId
+      VpcId: !Ref VpcId
+      SubnetIds: !If
+        - CreateMultiAZ
+        - - !Ref PrivateSubnet1Id
+          - !Ref PrivateSubnet2Id
+        - - !Ref PrivateSubnet1Id
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-tgw-attachment
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Route to On-premises (172.16.0.0/16) via Transit Gateway
+  # --------------------------------------------------------------------------
+  PrivateRoute1ToOnPremises:
+    Type: AWS::EC2::Route
+    DependsOn: TransitGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1Id
+      DestinationCidrBlock: 172.16.0.0/16
+      TransitGatewayId: !Ref TransitGatewayId
+
+  PrivateRoute2ToOnPremises:
+    Condition: CreateMultiAZ
+    Type: AWS::EC2::Route
+    DependsOn: TransitGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2Id
+      DestinationCidrBlock: 172.16.0.0/16
+      TransitGatewayId: !Ref TransitGatewayId
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  TransitGatewayAttachmentId:
+    Description: Transit Gateway Attachment ID
+    Value: !Ref TransitGatewayAttachment

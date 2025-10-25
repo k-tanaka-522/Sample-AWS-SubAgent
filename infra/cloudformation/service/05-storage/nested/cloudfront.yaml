@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFront Distribution for Frontend'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+  FrontendBucketDomainName:
+    Type: String
+    Description: Frontend S3 Bucket Domain Name
+
+  LogsBucketDomainName:
+    Type: String
+    Description: Logs S3 Bucket Domain Name
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # CloudFront Distribution
+  # --------------------------------------------------------------------------
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub ${ProjectName} ${Environment} frontend distribution
+        DefaultRootObject: index.html
+        Origins:
+          - Id: S3Origin
+            DomainName: !Ref FrontendBucketDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${CloudFrontOAI}
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          MinTTL: 0
+          DefaultTTL: 86400
+          MaxTTL: 31536000
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 300
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 300
+        PriceClass: PriceClass_200
+        Logging:
+          Bucket: !Ref LogsBucketDomainName
+          Prefix: cloudfront/
+          IncludeCookies: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-cloudfront
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # CloudFront Origin Access Identity (imported from s3-frontend.yaml)
+  # --------------------------------------------------------------------------
+  CloudFrontOAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub OAI for ${ProjectName}-${Environment}-frontend
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  CloudFrontDistributionId:
+    Description: CloudFront Distribution ID
+    Value: !Ref CloudFrontDistribution
+
+  CloudFrontDomainName:
+    Description: CloudFront Distribution Domain Name
+    Value: !GetAtt CloudFrontDistribution.DomainName

@@ -1,0 +1,134 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Transit Gateway Attachment for Client VPN Endpoint
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ClientVpnEndpointId:
+    Type: String
+    Description: Client VPN Endpoint ID
+    AllowedPattern: ^cvpn-endpoint-[0-9a-f]{17}$
+    ConstraintDescription: Must be a valid Client VPN Endpoint ID
+
+  TransitGatewayId:
+    Type: String
+    Description: Transit Gateway ID
+    AllowedPattern: ^tgw-[0-9a-f]{17}$
+    ConstraintDescription: Must be a valid Transit Gateway ID
+
+  OnPremisesRouteTableId:
+    Type: String
+    Description: Transit Gateway Route Table ID for on-premises
+    AllowedPattern: ^tgw-rtb-[0-9a-f]{17}$
+    ConstraintDescription: Must be a valid Transit Gateway Route Table ID
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # Transit Gateway Attachment (Client VPN → Transit Gateway)
+  # ------------------------------------------------------------------------------
+  # 注: AWS::EC2::TransitGatewayAttachment では Client VPN Endpoint を直接
+  #     アタッチできません。以下の手動手順が必要です。
+  # ------------------------------------------------------------------------------
+
+  # ------------------------------------------------------------------------------
+  # ダミーリソース（Transit Gateway Attachment は手動作成が必要）
+  # ------------------------------------------------------------------------------
+  DummyWaitConditionHandle:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    # CloudFormation では Client VPN Endpoint から Transit Gateway への
+    # Attachment を直接作成できません。以下の手順で手動作成してください。
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  TransitGatewayAttachmentId:
+    Description: |
+      Transit Gateway Attachment ID (must be created manually).
+
+      CloudFormation では Client VPN Endpoint から Transit Gateway への
+      Attachment を直接作成できないため、以下の手順で手動作成してください。
+    Value: ""
+
+  ManualSteps:
+    Description: Manual steps to create Transit Gateway Attachment
+    Value: !Sub |
+      ==============================================================================
+      Transit Gateway Attachment の手動作成が必要です
+      ==============================================================================
+
+      CloudFormation では Client VPN Endpoint から Transit Gateway への
+      Attachment を直接作成できません。以下の手順で AWS CLI を使用してください。
+
+      1. Client VPN Endpoint にルートを追加（Transit Gateway 向け）:
+
+         # Service VPC (dev: 10.0.0.0/16) へのルート
+         aws ec2 create-client-vpn-route \
+           --client-vpn-endpoint-id ${ClientVpnEndpointId} \
+           --destination-cidr-block 10.0.0.0/16 \
+           --target-vpc-subnet-id <subnet-id-in-target-vpc> \
+           --description "Route to dev VPC via Transit Gateway"
+
+         # Service VPC (stg: 10.1.0.0/16) へのルート
+         aws ec2 create-client-vpn-route \
+           --client-vpn-endpoint-id ${ClientVpnEndpointId} \
+           --destination-cidr-block 10.1.0.0/16 \
+           --target-vpc-subnet-id <subnet-id-in-target-vpc> \
+           --description "Route to stg VPC via Transit Gateway"
+
+         # Service VPC (prod: 10.2.0.0/16) へのルート
+         aws ec2 create-client-vpn-route \
+           --client-vpn-endpoint-id ${ClientVpnEndpointId} \
+           --destination-cidr-block 10.2.0.0/16 \
+           --target-vpc-subnet-id <subnet-id-in-target-vpc> \
+           --description "Route to prod VPC via Transit Gateway"
+
+      2. Transit Gateway Route Table にルートを追加（Client VPN 向け）:
+
+         # Client VPN CIDR (172.16.0.0/22) への静的ルート
+         aws ec2 create-transit-gateway-route \
+           --destination-cidr-block 172.16.0.0/22 \
+           --transit-gateway-route-table-id ${OnPremisesRouteTableId} \
+           --transit-gateway-attachment-id <client-vpn-attachment-id>
+
+      3. Client VPN Endpoint を VPC Subnet に関連付け:
+
+         aws ec2 associate-client-vpn-target-network \
+           --client-vpn-endpoint-id ${ClientVpnEndpointId} \
+           --subnet-id <subnet-id-in-shared-account>
+
+      ==============================================================================
+
+      重要: Client VPN Endpoint は、Transit Gateway に直接接続できません。
+      以下のいずれかの方法で実装してください：
+
+      方法1（推奨）: Client VPN → Shared Account VPC → Transit Gateway
+      ---------------------------------------------------------------
+      1. Shared Account に小さな VPC を作成（例: 10.255.0.0/16）
+      2. Client VPN Endpoint をこの VPC のサブネットに関連付け
+      3. この VPC から Transit Gateway への Attachment を作成
+      4. ルーティング設定
+
+      方法2: Client VPN → Service VPC → Transit Gateway
+      ---------------------------------------------------------------
+      1. Client VPN Endpoint を Service VPC のサブネットに関連付け
+      2. Service VPC から Transit Gateway への既存の Attachment を使用
+      3. ルーティング設定
+
+      ==============================================================================
+
+  ClientVpnEndpointId:
+    Description: Client VPN Endpoint ID (for reference)
+    Value: !Ref ClientVpnEndpointId
+
+  TransitGatewayId:
+    Description: Transit Gateway ID (for reference)
+    Value: !Ref TransitGatewayId
+
+  OnPremisesRouteTableId:
+    Description: Transit Gateway Route Table ID (for reference)
+    Value: !Ref OnPremisesRouteTableId

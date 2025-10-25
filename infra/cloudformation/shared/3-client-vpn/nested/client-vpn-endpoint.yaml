@@ -1,0 +1,122 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Client VPN Endpoint with Certificate-Based Authentication
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ClientCidrBlock:
+    Type: String
+    Description: Client CIDR block for VPN clients
+
+  ServerCertificateArn:
+    Type: String
+    Description: ACM Server Certificate ARN (imported from ACM)
+    AllowedPattern: ^arn:aws:acm:[a-z0-9-]+:\d{12}:certificate/[a-f0-9-]+$
+    ConstraintDescription: Must be a valid ACM certificate ARN
+
+  SplitTunnel:
+    Type: String
+    Description: Enable split tunnel
+
+  DnsServers:
+    Type: String
+    Description: DNS servers (comma-separated, leave blank to use VPC DNS)
+    Default: ""
+
+  SessionTimeoutHours:
+    Type: Number
+    Description: Session timeout in hours
+
+  CloudWatchLogGroupRetentionDays:
+    Type: Number
+    Description: CloudWatch Logs retention days
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  HasDnsServers: !Not [!Equals [!Ref DnsServers, ""]]
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # CloudWatch Logs for Client VPN
+  # ------------------------------------------------------------------------------
+  ClientVpnLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/clientvpn/facilities-shared-client-vpn
+      RetentionInDays: !Ref CloudWatchLogGroupRetentionDays
+      Tags:
+        - Key: Name
+          Value: facilities-shared-client-vpn-logs
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  ClientVpnLogStream:
+    Type: AWS::Logs::LogStream
+    Properties:
+      LogGroupName: !Ref ClientVpnLogGroup
+      LogStreamName: connection-log
+
+  # ------------------------------------------------------------------------------
+  # Client VPN Endpoint
+  # ------------------------------------------------------------------------------
+  ClientVpnEndpoint:
+    Type: AWS::EC2::ClientVpnEndpoint
+    Properties:
+      ClientCidrBlock: !Ref ClientCidrBlock
+      ServerCertificateArn: !Ref ServerCertificateArn
+      AuthenticationOptions:
+        - Type: certificate-authentication
+          MutualAuthentication:
+            ClientRootCertificateChainArn: !Ref ServerCertificateArn
+      ConnectionLogOptions:
+        Enabled: true
+        CloudwatchLogGroup: !Ref ClientVpnLogGroup
+        CloudwatchLogStream: !Ref ClientVpnLogStream
+      Description: Facilities Shared Client VPN Endpoint (暫定実装、将来Direct Connectへ移行)
+      DnsServers: !If
+        - HasDnsServers
+        - !Split [",", !Ref DnsServers]
+        - !Ref AWS::NoValue
+      SplitTunnel: !Ref SplitTunnel
+      TransportProtocol: udp
+      VpnPort: 443
+      SessionTimeoutHours: !Ref SessionTimeoutHours
+      TagSpecifications:
+        - ResourceType: client-vpn-endpoint
+          Tags:
+            - Key: Name
+              Value: facilities-shared-client-vpn
+            - Key: Environment
+              Value: shared
+            - Key: ManagedBy
+              Value: CloudFormation
+            - Key: Purpose
+              Value: Temporary implementation until Direct Connect is ready
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  ClientVpnEndpointId:
+    Description: Client VPN Endpoint ID
+    Value: !Ref ClientVpnEndpoint
+
+  ClientVpnEndpointArn:
+    Description: Client VPN Endpoint ARN
+    Value: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:client-vpn-endpoint/${ClientVpnEndpoint}
+
+  CloudWatchLogGroupName:
+    Description: CloudWatch Logs Group Name
+    Value: !Ref ClientVpnLogGroup
+
+  CloudWatchLogGroupArn:
+    Description: CloudWatch Logs Group ARN
+    Value: !GetAtt ClientVpnLogGroup.Arn

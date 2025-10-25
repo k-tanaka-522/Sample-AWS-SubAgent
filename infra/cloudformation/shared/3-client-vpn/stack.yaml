@@ -1,0 +1,341 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Shared Account Client VPN Endpoint (暫定実装、将来Direct Connectへ移行) - Master Stack
+
+# ==============================================================================
+# Metadata
+# ==============================================================================
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Transit Gateway Configuration
+        Parameters:
+          - TransitGatewayId
+          - OnPremisesRouteTableId
+      - Label:
+          default: Client VPN Configuration
+        Parameters:
+          - ClientCidrBlock
+          - ServerCertificateArn
+          - SplitTunnel
+          - DnsServers
+          - SessionTimeoutHours
+      - Label:
+          default: Logging Configuration
+        Parameters:
+          - CloudWatchLogGroupRetentionDays
+      - Label:
+          default: Nested Stack Templates
+        Parameters:
+          - TemplateS3Bucket
+          - TemplateS3Prefix
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  # Transit Gateway Configuration
+  TransitGatewayId:
+    Type: String
+    Description: Transit Gateway ID (from 2-network stack output)
+    AllowedPattern: ^tgw-[0-9a-f]{17}$
+    ConstraintDescription: Must be a valid Transit Gateway ID
+
+  OnPremisesRouteTableId:
+    Type: String
+    Description: Transit Gateway Route Table ID for on-premises (from 2-network stack output)
+    AllowedPattern: ^tgw-rtb-[0-9a-f]{17}$
+    ConstraintDescription: Must be a valid Transit Gateway Route Table ID
+
+  # Client VPN Configuration
+  ClientCidrBlock:
+    Type: String
+    Description: Client CIDR block for VPN clients (172.16.0.0/22 for 1,024 addresses)
+    Default: 172.16.0.0/22
+    AllowedPattern: ^(\d{1,3}\.){3}\d{1,3}/\d{1,2}$
+    ConstraintDescription: Must be a valid CIDR block
+
+  ServerCertificateArn:
+    Type: String
+    Description: ACM Server Certificate ARN (will be created by nested stack if blank)
+    Default: ""
+
+  SplitTunnel:
+    Type: String
+    Description: Enable split tunnel (only AWS VPC traffic via VPN)
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+
+  DnsServers:
+    Type: CommaDelimitedList
+    Description: DNS servers (comma-separated, leave blank to use VPC DNS)
+    Default: ""
+
+  SessionTimeoutHours:
+    Type: Number
+    Description: Session timeout in hours
+    Default: 12
+    MinValue: 8
+    MaxValue: 24
+
+  # Logging Configuration
+  CloudWatchLogGroupRetentionDays:
+    Type: Number
+    Description: CloudWatch Logs retention days
+    Default: 90
+    AllowedValues: [1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653]
+
+  # Nested Stack Templates
+  TemplateS3Bucket:
+    Type: String
+    Description: S3 bucket name for nested stack templates (leave blank to use local file:// URLs)
+    Default: ""
+
+  TemplateS3Prefix:
+    Type: String
+    Description: S3 key prefix for nested stack templates
+    Default: cloudformation/shared/3-client-vpn/nested
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  UseS3Templates: !Not [!Equals [!Ref TemplateS3Bucket, ""]]
+  CreateServerCertificate: !Equals [!Ref ServerCertificateArn, ""]
+  HasDnsServers: !Not [!Equals [!Join ["", !Ref DnsServers], ""]]
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # Client VPN VPC Stack (小さなVPCでClient VPN Endpointをホスト)
+  # ------------------------------------------------------------------------------
+  ClientVpnVpcStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !If
+        - UseS3Templates
+        - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/client-vpn-vpc.yaml
+        - nested/client-vpn-vpc.yaml
+      Tags:
+        - Key: Name
+          Value: facilities-shared-client-vpn-vpc-stack
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ------------------------------------------------------------------------------
+  # Server Certificate Stack (conditional)
+  # ------------------------------------------------------------------------------
+  ServerCertificateStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: CreateServerCertificate
+    Properties:
+      TemplateURL: !If
+        - UseS3Templates
+        - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/server-certificate.yaml
+        - nested/server-certificate.yaml
+      Tags:
+        - Key: Name
+          Value: facilities-shared-client-vpn-cert-stack
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ------------------------------------------------------------------------------
+  # Client VPN Endpoint Stack
+  # ------------------------------------------------------------------------------
+  ClientVpnEndpointStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ClientVpnVpcStack
+      - ServerCertificateStack
+    Properties:
+      TemplateURL: !If
+        - UseS3Templates
+        - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/client-vpn-endpoint.yaml
+        - nested/client-vpn-endpoint.yaml
+      Parameters:
+        ClientCidrBlock: !Ref ClientCidrBlock
+        ServerCertificateArn: !If
+          - CreateServerCertificate
+          - !GetAtt ServerCertificateStack.Outputs.ServerCertificateArn
+          - !Ref ServerCertificateArn
+        SplitTunnel: !Ref SplitTunnel
+        DnsServers: !If
+          - HasDnsServers
+          - !Join [",", !Ref DnsServers]
+          - ""
+        SessionTimeoutHours: !Ref SessionTimeoutHours
+        CloudWatchLogGroupRetentionDays: !Ref CloudWatchLogGroupRetentionDays
+      Tags:
+        - Key: Name
+          Value: facilities-shared-client-vpn-stack
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ------------------------------------------------------------------------------
+  # Transit Gateway Attachment Stack
+  # ------------------------------------------------------------------------------
+  TransitGatewayAttachmentStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ClientVpnVpcStack
+      - ClientVpnEndpointStack
+    Properties:
+      TemplateURL: !If
+        - UseS3Templates
+        - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/transit-gateway-attachment.yaml
+        - nested/transit-gateway-attachment.yaml
+      Parameters:
+        ClientVpnEndpointId: !GetAtt ClientVpnEndpointStack.Outputs.ClientVpnEndpointId
+        TransitGatewayId: !Ref TransitGatewayId
+        OnPremisesRouteTableId: !Ref OnPremisesRouteTableId
+      Tags:
+        - Key: Name
+          Value: facilities-shared-client-vpn-tgw-attach-stack
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  # Client VPN VPC
+  ClientVpnVpcId:
+    Description: Client VPN VPC ID
+    Value: !GetAtt ClientVpnVpcStack.Outputs.VpcId
+    Export:
+      Name: !Sub ${AWS::StackName}-VpcId
+
+  ClientVpnSubnet1Id:
+    Description: Client VPN Subnet 1 ID (AZ-a)
+    Value: !GetAtt ClientVpnVpcStack.Outputs.Subnet1Id
+    Export:
+      Name: !Sub ${AWS::StackName}-Subnet1Id
+
+  ClientVpnSubnet2Id:
+    Description: Client VPN Subnet 2 ID (AZ-c)
+    Value: !GetAtt ClientVpnVpcStack.Outputs.Subnet2Id
+    Export:
+      Name: !Sub ${AWS::StackName}-Subnet2Id
+
+  # Client VPN Endpoint
+  ClientVpnEndpointId:
+    Description: Client VPN Endpoint ID
+    Value: !GetAtt ClientVpnEndpointStack.Outputs.ClientVpnEndpointId
+    Export:
+      Name: !Sub ${AWS::StackName}-ClientVpnEndpointId
+
+  ClientVpnEndpointArn:
+    Description: Client VPN Endpoint ARN
+    Value: !GetAtt ClientVpnEndpointStack.Outputs.ClientVpnEndpointArn
+
+  # Server Certificate
+  ServerCertificateArn:
+    Description: ACM Server Certificate ARN
+    Value: !If
+      - CreateServerCertificate
+      - !GetAtt ServerCertificateStack.Outputs.ServerCertificateArn
+      - !Ref ServerCertificateArn
+    Export:
+      Name: !Sub ${AWS::StackName}-ServerCertificateArn
+
+  # Transit Gateway Attachment
+  TransitGatewayAttachmentId:
+    Description: Transit Gateway Attachment ID (Client VPN VPC → TGW, 手動作成が必要)
+    Value: !GetAtt TransitGatewayAttachmentStack.Outputs.TransitGatewayAttachmentId
+
+  # CloudWatch Logs
+  CloudWatchLogGroupName:
+    Description: CloudWatch Logs Group Name
+    Value: !GetAtt ClientVpnEndpointStack.Outputs.CloudWatchLogGroupName
+
+  # Configuration Summary
+  ClientCidrBlock:
+    Description: Client CIDR Block (VPN client IP pool)
+    Value: !Ref ClientCidrBlock
+
+  SplitTunnel:
+    Description: Split Tunnel Enabled
+    Value: !Ref SplitTunnel
+
+  SessionTimeoutHours:
+    Description: Session Timeout (hours)
+    Value: !Ref SessionTimeoutHours
+
+  NextSteps:
+    Description: Next steps after deployment
+    Value: |
+      ==============================================================================
+      Client VPN Endpoint デプロイ完了後の手順
+      ==============================================================================
+
+      1. サーバー証明書を作成（手動、OpenSSL）:
+         openssl genrsa -out server.key 2048
+         openssl req -new -key server.key -out server.csr -subj "/C=JP/ST=Tokyo/L=Tokyo/O=Facilities/CN=server"
+         openssl x509 -req -in server.csr -signkey server.key -out server.crt -days 3650
+         aws acm import-certificate \
+           --certificate fileb://server.crt \
+           --private-key fileb://server.key \
+           --region ap-northeast-1
+
+      2. クライアント証明書を作成（拠点ごと、例: client01）:
+         openssl genrsa -out client01.key 2048
+         openssl req -new -key client01.key -out client01.csr -subj "/C=JP/ST=Tokyo/L=Tokyo/O=Facilities/CN=client01"
+         openssl x509 -req -in client01.csr -CA server.crt -CAkey server.key -CAcreateserial -out client01.crt -days 3650
+         aws acm import-certificate \
+           --certificate fileb://client01.crt \
+           --private-key fileb://client01.key \
+           --certificate-chain fileb://server.crt \
+           --region ap-northeast-1
+
+      3. Client VPN Endpoint をサブネットに関連付け（手動）:
+         aws ec2 associate-client-vpn-target-network \
+           --client-vpn-endpoint-id <client-vpn-endpoint-id> \
+           --subnet-id <client-vpn-subnet-1-id>
+
+      4. Client VPN VPC から Transit Gateway への Attachment を作成（手動）:
+         aws ec2 create-transit-gateway-vpc-attachment \
+           --transit-gateway-id <transit-gateway-id> \
+           --vpc-id <client-vpn-vpc-id> \
+           --subnet-ids <client-vpn-subnet-1-id> <client-vpn-subnet-2-id>
+
+      5. Transit Gateway Route Table にルートを追加:
+         # Client VPN CIDR (172.16.0.0/22) へのルート
+         aws ec2 create-transit-gateway-route \
+           --destination-cidr-block 172.16.0.0/22 \
+           --transit-gateway-route-table-id <on-premises-route-table-id> \
+           --transit-gateway-attachment-id <client-vpn-vpc-tgw-attachment-id>
+
+      6. Client VPN VPC Route Table にルートを追加:
+         # Service VPC (dev/stg/prod) へのルート
+         aws ec2 create-route \
+           --route-table-id <client-vpn-vpc-route-table-id> \
+           --destination-cidr-block 10.0.0.0/8 \
+           --transit-gateway-id <transit-gateway-id>
+
+      7. Client VPN Endpoint に認可ルールを追加:
+         aws ec2 authorize-client-vpn-ingress \
+           --client-vpn-endpoint-id <client-vpn-endpoint-id> \
+           --target-network-cidr 10.0.0.0/8 \
+           --authorize-all-groups
+
+      8. VPN クライアント設定ファイルをダウンロード（AWS Console）
+
+      9. 拠点ごとにクライアント証明書を配布
+
+      10. 接続テストを実施（拠点 → Service VPC へのアクセス確認）
+
+      11. 将来、Direct Connect 実装時に Client VPN を無効化
+
+      ==============================================================================

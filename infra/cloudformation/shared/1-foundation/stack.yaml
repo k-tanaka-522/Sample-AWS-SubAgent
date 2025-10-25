@@ -21,6 +21,11 @@ Parameters:
     Type: String
     Description: Service Account ID (AWS Account ID for member account)
 
+  TemplatesBucket:
+    Type: String
+    Description: S3 bucket name for nested templates (leave empty for local file:// URLs)
+    Default: ""
+
 # ==============================================================================
 # Resources
 # ==============================================================================

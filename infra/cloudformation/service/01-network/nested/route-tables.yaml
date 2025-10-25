@@ -1,0 +1,255 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Route Tables - Public and Private Route Tables'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+  VpcId:
+    Type: String
+    Description: VPC ID
+
+  InternetGatewayId:
+    Type: String
+    Description: Internet Gateway ID
+
+  NATGateway1Id:
+    Type: String
+    Description: NAT Gateway 1 ID
+
+  NATGateway2Id:
+    Type: String
+    Default: ''
+    Description: NAT Gateway 2 ID (optional for Multi-AZ)
+
+  PublicSubnet1Id:
+    Type: String
+    Description: Public Subnet 1 ID
+
+  PublicSubnet2Id:
+    Type: String
+    Default: ''
+    Description: Public Subnet 2 ID (optional for Multi-AZ)
+
+  PrivateSubnet1Id:
+    Type: String
+    Description: Private Subnet 1 ID
+
+  PrivateSubnet2Id:
+    Type: String
+    Default: ''
+    Description: Private Subnet 2 ID (optional for Multi-AZ)
+
+  DBSubnet1Id:
+    Type: String
+    Description: DB Subnet 1 ID
+
+  DBSubnet2Id:
+    Type: String
+    Default: ''
+    Description: DB Subnet 2 ID (optional for Multi-AZ)
+
+  IsMultiAZ:
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+    Description: Whether to create resources in multiple AZs
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  CreateMultiAZ: !Equals [!Ref IsMultiAZ, 'true']
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # Public Route Table
+  # --------------------------------------------------------------------------
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-public-rt
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGatewayId
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1Id
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Condition: CreateMultiAZ
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2Id
+      RouteTableId: !Ref PublicRouteTable
+
+  # --------------------------------------------------------------------------
+  # Private Route Table 1 (AZ-a)
+  # --------------------------------------------------------------------------
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-private-rt-1
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway1Id
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1Id
+      RouteTableId: !Ref PrivateRouteTable1
+
+  # --------------------------------------------------------------------------
+  # Private Route Table 2 (AZ-c) - Multi-AZ only
+  # --------------------------------------------------------------------------
+  PrivateRouteTable2:
+    Condition: CreateMultiAZ
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-private-rt-2
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  PrivateRoute2:
+    Condition: CreateMultiAZ
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway2Id
+
+  PrivateSubnet2RouteTableAssociation:
+    Condition: CreateMultiAZ
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2Id
+      RouteTableId: !Ref PrivateRouteTable2
+
+  # --------------------------------------------------------------------------
+  # DB Route Table 1 (AZ-a)
+  # --------------------------------------------------------------------------
+  DBRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-db-rt-1
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  DBRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref DBRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway1Id
+
+  DBSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref DBSubnet1Id
+      RouteTableId: !Ref DBRouteTable1
+
+  # --------------------------------------------------------------------------
+  # DB Route Table 2 (AZ-c) - Multi-AZ only
+  # --------------------------------------------------------------------------
+  DBRouteTable2:
+    Condition: CreateMultiAZ
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-db-rt-2
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  DBRoute2:
+    Condition: CreateMultiAZ
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref DBRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway2Id
+
+  DBSubnet2RouteTableAssociation:
+    Condition: CreateMultiAZ
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref DBSubnet2Id
+      RouteTableId: !Ref DBRouteTable2
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  PublicRouteTableId:
+    Description: Public Route Table ID
+    Value: !Ref PublicRouteTable
+
+  PrivateRouteTable1Id:
+    Description: Private Route Table 1 ID
+    Value: !Ref PrivateRouteTable1
+
+  PrivateRouteTable2Id:
+    Condition: CreateMultiAZ
+    Description: Private Route Table 2 ID
+    Value: !Ref PrivateRouteTable2
+
+  DBRouteTable1Id:
+    Description: DB Route Table 1 ID
+    Value: !Ref DBRouteTable1
+
+  DBRouteTable2Id:
+    Condition: CreateMultiAZ
+    Description: DB Route Table 2 ID
+    Value: !Ref DBRouteTable2

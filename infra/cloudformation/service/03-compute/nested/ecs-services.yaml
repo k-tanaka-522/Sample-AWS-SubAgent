@@ -1,0 +1,216 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'ECS Services - staff-api, vendor-api'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+  ClusterArn:
+    Type: String
+    Description: ECS Cluster ARN
+
+  StaffApiTaskDefinitionArn:
+    Type: String
+    Description: Staff API Task Definition ARN
+
+  VendorApiTaskDefinitionArn:
+    Type: String
+    Description: Vendor API Task Definition ARN
+
+  StaffApiTargetGroupArn:
+    Type: String
+    Description: Staff API Target Group ARN
+
+  VendorApiTargetGroupArn:
+    Type: String
+    Description: Vendor API Target Group ARN
+
+  StaffApiDesiredCount:
+    Type: Number
+    Description: Staff API desired task count
+
+  VendorApiDesiredCount:
+    Type: Number
+    Description: Vendor API desired task count
+
+  PrivateSubnet1Id:
+    Type: String
+    Description: Private Subnet 1 ID
+
+  PrivateSubnet2Id:
+    Type: String
+    Default: ''
+    Description: Private Subnet 2 ID (optional for Multi-AZ)
+
+  ECSSecurityGroupId:
+    Type: String
+    Description: ECS Security Group ID
+
+  IsMultiAZ:
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+    Description: Whether to create resources in multiple AZs
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  CreateMultiAZ: !Equals [!Ref IsMultiAZ, 'true']
+  EnableAutoScaling: !Equals [!Ref Environment, prod]
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # ECS Service (Staff API)
+  # --------------------------------------------------------------------------
+  StaffApiService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub ${ProjectName}-${Environment}-staff-api-service
+      Cluster: !Ref ClusterArn
+      TaskDefinition: !Ref StaffApiTaskDefinitionArn
+      DesiredCount: !Ref StaffApiDesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets: !If
+            - CreateMultiAZ
+            - - !Ref PrivateSubnet1Id
+              - !Ref PrivateSubnet2Id
+            - - !Ref PrivateSubnet1Id
+          SecurityGroups:
+            - !Ref ECSSecurityGroupId
+      LoadBalancers:
+        - ContainerName: staff-api
+          ContainerPort: 3000
+          TargetGroupArn: !Ref StaffApiTargetGroupArn
+      HealthCheckGracePeriodSeconds: 60
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-staff-api-service
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # ECS Service (Vendor API)
+  # --------------------------------------------------------------------------
+  VendorApiService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub ${ProjectName}-${Environment}-vendor-api-service
+      Cluster: !Ref ClusterArn
+      TaskDefinition: !Ref VendorApiTaskDefinitionArn
+      DesiredCount: !Ref VendorApiDesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          Subnets: !If
+            - CreateMultiAZ
+            - - !Ref PrivateSubnet1Id
+              - !Ref PrivateSubnet2Id
+            - - !Ref PrivateSubnet1Id
+          SecurityGroups:
+            - !Ref ECSSecurityGroupId
+      LoadBalancers:
+        - ContainerName: vendor-api
+          ContainerPort: 3000
+          TargetGroupArn: !Ref VendorApiTargetGroupArn
+      HealthCheckGracePeriodSeconds: 60
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-vendor-api-service
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Auto Scaling Target (Staff API) - prod only
+  # --------------------------------------------------------------------------
+  StaffApiScalableTarget:
+    Condition: EnableAutoScaling
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      ServiceNamespace: ecs
+      ResourceId: !Sub service/${ProjectName}-${Environment}-cluster/${ProjectName}-${Environment}-staff-api-service
+      ScalableDimension: ecs:service:DesiredCount
+      MinCapacity: 2
+      MaxCapacity: 5
+      RoleARN: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService
+
+  # --------------------------------------------------------------------------
+  # Auto Scaling Policy (Staff API - CPU) - prod only
+  # --------------------------------------------------------------------------
+  StaffApiScalingPolicyCPU:
+    Condition: EnableAutoScaling
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-${Environment}-staff-api-cpu-scaling
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref StaffApiScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 70.0
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 300
+
+  # --------------------------------------------------------------------------
+  # Auto Scaling Target (Vendor API) - prod only
+  # --------------------------------------------------------------------------
+  VendorApiScalableTarget:
+    Condition: EnableAutoScaling
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      ServiceNamespace: ecs
+      ResourceId: !Sub service/${ProjectName}-${Environment}-cluster/${ProjectName}-${Environment}-vendor-api-service
+      ScalableDimension: ecs:service:DesiredCount
+      MinCapacity: 2
+      MaxCapacity: 5
+      RoleARN: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService
+
+  # --------------------------------------------------------------------------
+  # Auto Scaling Policy (Vendor API - CPU) - prod only
+  # --------------------------------------------------------------------------
+  VendorApiScalingPolicyCPU:
+    Condition: EnableAutoScaling
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-${Environment}-vendor-api-cpu-scaling
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref VendorApiScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 70.0
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 300
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  StaffApiServiceArn:
+    Description: Staff API Service ARN
+    Value: !Ref StaffApiService
+
+  VendorApiServiceArn:
+    Description: Vendor API Service ARN
+    Value: !Ref VendorApiService

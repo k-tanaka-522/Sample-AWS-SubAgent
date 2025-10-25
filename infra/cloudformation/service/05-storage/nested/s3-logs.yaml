@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'S3 Bucket for Logs (ALB, CloudFront, VPC Flow Logs)'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # S3 Bucket (Logs)
+  # --------------------------------------------------------------------------
+  LogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${ProjectName}-${Environment}-logs-${AWS::AccountId}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Disabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: TransitionToGlacier
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 90
+              - StorageClass: GLACIER
+                TransitionInDays: 365
+            ExpirationInDays: 730
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-logs
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Bucket Policy (ALB and CloudFront logging)
+  # --------------------------------------------------------------------------
+  LogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref LogsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AWSLogDeliveryWrite
+            Effect: Allow
+            Principal:
+              Service:
+                - logging.s3.amazonaws.com
+                - elasticloadbalancing.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub ${LogsBucket.Arn}/*
+          - Sid: AWSLogDeliveryAclCheck
+            Effect: Allow
+            Principal:
+              Service:
+                - logging.s3.amazonaws.com
+                - elasticloadbalancing.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !GetAtt LogsBucket.Arn
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  LogsBucketName:
+    Description: Logs S3 Bucket Name
+    Value: !Ref LogsBucket
+
+  LogsBucketArn:
+    Description: Logs S3 Bucket ARN
+    Value: !GetAtt LogsBucket.Arn
+
+  LogsBucketDomainName:
+    Description: Logs S3 Bucket Domain Name
+    Value: !GetAtt LogsBucket.RegionalDomainName

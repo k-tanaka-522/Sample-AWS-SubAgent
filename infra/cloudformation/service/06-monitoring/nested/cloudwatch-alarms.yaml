@@ -1,0 +1,184 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudWatch Alarms - ECS, RDS, ALB'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+  SNSTopicArn:
+    Type: String
+    Description: SNS Topic ARN for alarm notifications
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  IsProduction: !Equals [!Ref Environment, prod]
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # ECS Alarms
+  # --------------------------------------------------------------------------
+  ECSCPUUtilizationHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-ecs-cpu-high
+      AlarmDescription: ECS CPU使用率が80%を超えました
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Statistic: Average
+      Period: 120
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ClusterName
+          Value: !Sub ${ProjectName}-${Environment}-cluster
+      AlarmActions:
+        - !Ref SNSTopicArn
+      TreatMissingData: notBreaching
+
+  ECSMemoryUtilizationHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-ecs-memory-high
+      AlarmDescription: ECS メモリ使用率が80%を超えました
+      MetricName: MemoryUtilization
+      Namespace: AWS/ECS
+      Statistic: Average
+      Period: 120
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ClusterName
+          Value: !Sub ${ProjectName}-${Environment}-cluster
+      AlarmActions:
+        - !Ref SNSTopicArn
+      TreatMissingData: notBreaching
+
+  # --------------------------------------------------------------------------
+  # RDS Alarms
+  # --------------------------------------------------------------------------
+  RDSCPUUtilizationHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-rds-cpu-high
+      AlarmDescription: RDS CPU使用率が80%を超えました
+      MetricName: CPUUtilization
+      Namespace: AWS/RDS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Sub ${ProjectName}-${Environment}-db
+      AlarmActions:
+        - !Ref SNSTopicArn
+      TreatMissingData: notBreaching
+
+  RDSFreeStorageLowAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-rds-storage-low
+      AlarmDescription: RDS フリーストレージ容量が10GB以下です
+      MetricName: FreeStorageSpace
+      Namespace: AWS/RDS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 10737418240
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Sub ${ProjectName}-${Environment}-db
+      AlarmActions:
+        - !Ref SNSTopicArn
+      TreatMissingData: notBreaching
+
+  RDSDatabaseConnectionsHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-rds-connections-high
+      AlarmDescription: RDS 接続数が160以上です（最大200の80%）
+      MetricName: DatabaseConnections
+      Namespace: AWS/RDS
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 160
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Sub ${ProjectName}-${Environment}-db
+      AlarmActions:
+        - !Ref SNSTopicArn
+      TreatMissingData: notBreaching
+
+  # --------------------------------------------------------------------------
+  # ALB Alarms (Production only)
+  # --------------------------------------------------------------------------
+  ALBTargetResponseTimeHighAlarm:
+    Condition: IsProduction
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-alb-response-time-high
+      AlarmDescription: ALB 応答時間が1秒を超えました（95パーセンタイル）
+      MetricName: TargetResponseTime
+      Namespace: AWS/ApplicationELB
+      ExtendedStatistic: p95
+      Period: 120
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !Sub app/${ProjectName}-${Environment}-staff-alb
+      AlarmActions:
+        - !Ref SNSTopicArn
+      TreatMissingData: notBreaching
+
+  ALBHTTPCode5XXHighAlarm:
+    Condition: IsProduction
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-alb-5xx-high
+      AlarmDescription: ALB 5XXエラーが5%以上です
+      MetricName: HTTPCode_Target_5XX_Count
+      Namespace: AWS/ApplicationELB
+      Statistic: Sum
+      Period: 120
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !Sub app/${ProjectName}-${Environment}-staff-alb
+      AlarmActions:
+        - !Ref SNSTopicArn
+      TreatMissingData: notBreaching
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  ECSCPUAlarmName:
+    Description: ECS CPU Alarm Name
+    Value: !Ref ECSCPUUtilizationHighAlarm
+
+  RDSCPUAlarmName:
+    Description: RDS CPU Alarm Name
+    Value: !Ref RDSCPUUtilizationHighAlarm

@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Auth Stack - Cognito User Pools (staff, vendor)'
+
+# ==============================================================================
+# Metadata
+# ==============================================================================
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Project Configuration
+        Parameters:
+          - ProjectName
+          - Environment
+      - Label:
+          default: S3 Template Bucket
+        Parameters:
+          - TemplateBucketName
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Default: facilities
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Default: dev
+    Description: Environment name
+
+  TemplateBucketName:
+    Type: String
+    Description: S3 bucket name for nested templates
+
+# ==============================================================================
+# Resources (Nested Stacks)
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # Cognito User Pool (Staff)
+  # --------------------------------------------------------------------------
+  CognitoUserPoolStaffStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/04-auth/nested/cognito-user-pool-staff.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-cognito-staff-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Cognito User Pool (Vendor)
+  # --------------------------------------------------------------------------
+  CognitoUserPoolVendorStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/04-auth/nested/cognito-user-pool-vendor.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-cognito-vendor-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  StaffUserPoolId:
+    Description: Staff Cognito User Pool ID
+    Value: !GetAtt CognitoUserPoolStaffStack.Outputs.UserPoolId
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-StaffUserPoolId
+
+  StaffUserPoolArn:
+    Description: Staff Cognito User Pool ARN
+    Value: !GetAtt CognitoUserPoolStaffStack.Outputs.UserPoolArn
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-StaffUserPoolArn
+
+  VendorUserPoolId:
+    Description: Vendor Cognito User Pool ID
+    Value: !GetAtt CognitoUserPoolVendorStack.Outputs.UserPoolId
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-VendorUserPoolId
+
+  VendorUserPoolArn:
+    Description: Vendor Cognito User Pool ARN
+    Value: !GetAtt CognitoUserPoolVendorStack.Outputs.UserPoolArn
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-VendorUserPoolArn

@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Application Load Balancer - Staff (internal) and Vendor (internet-facing)'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+  VpcId:
+    Type: String
+    Description: VPC ID
+
+  PublicSubnet1Id:
+    Type: String
+    Description: Public Subnet 1 ID
+
+  PublicSubnet2Id:
+    Type: String
+    Default: ''
+    Description: Public Subnet 2 ID (optional for Multi-AZ)
+
+  ALBSecurityGroupId:
+    Type: String
+    Description: ALB Security Group ID
+
+  IsMultiAZ:
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+    Description: Whether to create resources in multiple AZs
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  CreateMultiAZ: !Equals [!Ref IsMultiAZ, 'true']
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # ALB (Staff API - Internal)
+  # --------------------------------------------------------------------------
+  StaffALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub ${ProjectName}-${Environment}-staff-alb
+      Type: application
+      Scheme: internal
+      IpAddressType: ipv4
+      Subnets: !If
+        - CreateMultiAZ
+        - - !Ref PublicSubnet1Id
+          - !Ref PublicSubnet2Id
+        - - !Ref PublicSubnet1Id
+      SecurityGroups:
+        - !Ref ALBSecurityGroupId
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-staff-alb
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # ALB (Vendor API - Internet-facing)
+  # --------------------------------------------------------------------------
+  VendorALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub ${ProjectName}-${Environment}-vendor-alb
+      Type: application
+      Scheme: internet-facing
+      IpAddressType: ipv4
+      Subnets: !If
+        - CreateMultiAZ
+        - - !Ref PublicSubnet1Id
+          - !Ref PublicSubnet2Id
+        - - !Ref PublicSubnet1Id
+      SecurityGroups:
+        - !Ref ALBSecurityGroupId
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-vendor-alb
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  StaffALBArn:
+    Description: Staff ALB ARN
+    Value: !Ref StaffALB
+
+  StaffALBDNSName:
+    Description: Staff ALB DNS Name
+    Value: !GetAtt StaffALB.DNSName
+
+  VendorALBArn:
+    Description: Vendor ALB ARN
+    Value: !Ref VendorALB
+
+  VendorALBDNSName:
+    Description: Vendor ALB DNS Name
+    Value: !GetAtt VendorALB.DNSName

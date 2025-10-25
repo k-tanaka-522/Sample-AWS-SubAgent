@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Small VPC for Client VPN Endpoint in Shared Account
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # VPC for Client VPN Endpoint
+  # ------------------------------------------------------------------------------
+  ClientVpnVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.255.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: facilities-shared-client-vpn-vpc
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: Purpose
+          Value: Client VPN Endpoint attachment VPC
+
+  # ------------------------------------------------------------------------------
+  # Subnets (2 AZs for redundancy)
+  # ------------------------------------------------------------------------------
+  ClientVpnSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ClientVpnVPC
+      CidrBlock: 10.255.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: facilities-shared-client-vpn-subnet-1a
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  ClientVpnSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref ClientVpnVPC
+      CidrBlock: 10.255.1.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: facilities-shared-client-vpn-subnet-1c
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ------------------------------------------------------------------------------
+  # Route Table (VPC内通信のみ、インターネットアクセス不要)
+  # ------------------------------------------------------------------------------
+  ClientVpnRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref ClientVpnVPC
+      Tags:
+        - Key: Name
+          Value: facilities-shared-client-vpn-rtb
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  ClientVpnSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref ClientVpnSubnet1
+      RouteTableId: !Ref ClientVpnRouteTable
+
+  ClientVpnSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref ClientVpnSubnet2
+      RouteTableId: !Ref ClientVpnRouteTable
+
+  # ------------------------------------------------------------------------------
+  # Security Group (Client VPN 用、すべての通信を許可)
+  # ------------------------------------------------------------------------------
+  ClientVpnSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: facilities-shared-client-vpn-sg
+      GroupDescription: Security Group for Client VPN Endpoint
+      VpcId: !Ref ClientVpnVPC
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          CidrIp: 172.16.0.0/22
+          Description: Allow all traffic from Client VPN CIDR
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic
+      Tags:
+        - Key: Name
+          Value: facilities-shared-client-vpn-sg
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  VpcId:
+    Description: VPC ID for Client VPN Endpoint
+    Value: !Ref ClientVpnVPC
+    Export:
+      Name: facilities-shared-client-vpn-VpcId
+
+  Subnet1Id:
+    Description: Subnet 1 ID (AZ-a)
+    Value: !Ref ClientVpnSubnet1
+    Export:
+      Name: facilities-shared-client-vpn-Subnet1Id
+
+  Subnet2Id:
+    Description: Subnet 2 ID (AZ-c)
+    Value: !Ref ClientVpnSubnet2
+    Export:
+      Name: facilities-shared-client-vpn-Subnet2Id
+
+  SecurityGroupId:
+    Description: Security Group ID for Client VPN
+    Value: !Ref ClientVpnSecurityGroup
+    Export:
+      Name: facilities-shared-client-vpn-SecurityGroupId
+
+  VpcCidr:
+    Description: VPC CIDR Block
+    Value: !GetAtt ClientVpnVPC.CidrBlock

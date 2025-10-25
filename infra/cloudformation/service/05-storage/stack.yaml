@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Storage Stack - S3 (frontend, logs), CloudFront'
+
+# ==============================================================================
+# Metadata
+# ==============================================================================
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Project Configuration
+        Parameters:
+          - ProjectName
+          - Environment
+      - Label:
+          default: S3 Template Bucket
+        Parameters:
+          - TemplateBucketName
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Default: facilities
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Default: dev
+    Description: Environment name
+
+  TemplateBucketName:
+    Type: String
+    Description: S3 bucket name for nested templates
+
+# ==============================================================================
+# Resources (Nested Stacks)
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # S3 Frontend Stack
+  # --------------------------------------------------------------------------
+  S3FrontendStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/05-storage/nested/s3-frontend.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-s3-frontend-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # S3 Logs Stack
+  # --------------------------------------------------------------------------
+  S3LogsStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/05-storage/nested/s3-logs.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-s3-logs-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # CloudFront Stack
+  # --------------------------------------------------------------------------
+  CloudFrontStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - S3FrontendStack
+      - S3LogsStack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/05-storage/nested/cloudfront.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        FrontendBucketDomainName: !GetAtt S3FrontendStack.Outputs.FrontendBucketDomainName
+        LogsBucketDomainName: !GetAtt S3LogsStack.Outputs.LogsBucketDomainName
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-cloudfront-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  FrontendBucketName:
+    Description: Frontend S3 Bucket Name
+    Value: !GetAtt S3FrontendStack.Outputs.FrontendBucketName
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-FrontendBucketName
+
+  LogsBucketName:
+    Description: Logs S3 Bucket Name
+    Value: !GetAtt S3LogsStack.Outputs.LogsBucketName
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-LogsBucketName
+
+  CloudFrontDistributionId:
+    Description: CloudFront Distribution ID
+    Value: !GetAtt CloudFrontStack.Outputs.CloudFrontDistributionId
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-CloudFrontDistributionId
+
+  CloudFrontDomainName:
+    Description: CloudFront Distribution Domain Name
+    Value: !GetAtt CloudFrontStack.Outputs.CloudFrontDomainName
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-CloudFrontDomainName

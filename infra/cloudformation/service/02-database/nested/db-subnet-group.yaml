@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'DB Subnet Group for RDS'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+  DBSubnet1Id:
+    Type: String
+    Description: DB Subnet 1 ID
+
+  DBSubnet2Id:
+    Type: String
+    Default: ''
+    Description: DB Subnet 2 ID (optional for Multi-AZ)
+
+  IsMultiAZ:
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+    Description: Whether to create resources in multiple AZs
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  CreateMultiAZ: !Equals [!Ref IsMultiAZ, 'true']
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # DB Subnet Group
+  # --------------------------------------------------------------------------
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Sub ${ProjectName}-${Environment}-db-subnet-group
+      DBSubnetGroupDescription: !Sub DB subnet group for ${ProjectName} ${Environment}
+      SubnetIds: !If
+        - CreateMultiAZ
+        - - !Ref DBSubnet1Id
+          - !Ref DBSubnet2Id
+        - - !Ref DBSubnet1Id
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-db-subnet-group
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  DBSubnetGroupName:
+    Description: DB Subnet Group Name
+    Value: !Ref DBSubnetGroup

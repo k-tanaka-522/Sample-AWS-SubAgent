@@ -1,0 +1,251 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Compute Stack - ECS Cluster, Task Definitions, Services, ALB, Target Groups'
+
+# ==============================================================================
+# Metadata
+# ==============================================================================
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Project Configuration
+        Parameters:
+          - ProjectName
+          - Environment
+      - Label:
+          default: ECS Configuration
+        Parameters:
+          - StaffApiTaskCpu
+          - StaffApiTaskMemory
+          - StaffApiDesiredCount
+          - VendorApiTaskCpu
+          - VendorApiTaskMemory
+          - VendorApiDesiredCount
+          - BatchTaskCpu
+          - BatchTaskMemory
+      - Label:
+          default: Container Image
+        Parameters:
+          - ECRRepositoryUri
+      - Label:
+          default: S3 Template Bucket
+        Parameters:
+          - TemplateBucketName
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Default: facilities
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Default: dev
+    Description: Environment name
+
+  StaffApiTaskCpu:
+    Type: Number
+    Description: Staff API task CPU (256, 512, 1024, etc.)
+
+  StaffApiTaskMemory:
+    Type: Number
+    Description: Staff API task memory in MB
+
+  StaffApiDesiredCount:
+    Type: Number
+    Description: Staff API desired task count
+
+  VendorApiTaskCpu:
+    Type: Number
+    Description: Vendor API task CPU (256, 512, 1024, etc.)
+
+  VendorApiTaskMemory:
+    Type: Number
+    Description: Vendor API task memory in MB
+
+  VendorApiDesiredCount:
+    Type: Number
+    Description: Vendor API desired task count
+
+  BatchTaskCpu:
+    Type: Number
+    Description: Batch task CPU (256, 512, 1024, 2048, etc.)
+
+  BatchTaskMemory:
+    Type: Number
+    Description: Batch task memory in MB
+
+  ECRRepositoryUri:
+    Type: String
+    Description: ECR repository URI for container images
+
+  TemplateBucketName:
+    Type: String
+    Description: S3 bucket name for nested templates
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  IsMultiAZ: !Or
+    - !Equals [!Ref Environment, stg]
+    - !Equals [!Ref Environment, prod]
+
+# ==============================================================================
+# Resources (Nested Stacks)
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # ECS Cluster Stack
+  # --------------------------------------------------------------------------
+  ECSClusterStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/03-compute/nested/ecs-cluster.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-ecs-cluster-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # ECS Task Definitions Stack
+  # --------------------------------------------------------------------------
+  ECSTaskDefinitionsStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: ECSClusterStack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/03-compute/nested/ecs-task-definitions.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        StaffApiTaskCpu: !Ref StaffApiTaskCpu
+        StaffApiTaskMemory: !Ref StaffApiTaskMemory
+        VendorApiTaskCpu: !Ref VendorApiTaskCpu
+        VendorApiTaskMemory: !Ref VendorApiTaskMemory
+        BatchTaskCpu: !Ref BatchTaskCpu
+        BatchTaskMemory: !Ref BatchTaskMemory
+        ECRRepositoryUri: !Ref ECRRepositoryUri
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-task-definitions-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # ALB Stack
+  # --------------------------------------------------------------------------
+  ALBStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/03-compute/nested/alb.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        VpcId: !Sub '{{resolve:ssm:/${ProjectName}/${Environment}/network/vpc-id}}'
+        PublicSubnet1Id: !Sub '{{resolve:ssm:/${ProjectName}/${Environment}/network/public-subnet-1-id}}'
+        PublicSubnet2Id: !If
+          - IsMultiAZ
+          - !Sub '{{resolve:ssm:/${ProjectName}/${Environment}/network/public-subnet-2-id}}'
+          - !Ref AWS::NoValue
+        ALBSecurityGroupId: !Sub '{{resolve:ssm:/${ProjectName}/${Environment}/network/alb-security-group-id}}'
+        IsMultiAZ: !If [IsMultiAZ, 'true', 'false']
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-alb-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Target Groups Stack
+  # --------------------------------------------------------------------------
+  TargetGroupsStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: ALBStack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/03-compute/nested/target-groups.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        VpcId: !Sub '{{resolve:ssm:/${ProjectName}/${Environment}/network/vpc-id}}'
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-target-groups-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # ECS Services Stack
+  # --------------------------------------------------------------------------
+  ECSServicesStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ECSClusterStack
+      - ECSTaskDefinitionsStack
+      - TargetGroupsStack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/03-compute/nested/ecs-services.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        ClusterArn: !GetAtt ECSClusterStack.Outputs.ECSClusterArn
+        StaffApiTaskDefinitionArn: !GetAtt ECSTaskDefinitionsStack.Outputs.StaffApiTaskDefinitionArn
+        VendorApiTaskDefinitionArn: !GetAtt ECSTaskDefinitionsStack.Outputs.VendorApiTaskDefinitionArn
+        StaffApiTargetGroupArn: !GetAtt TargetGroupsStack.Outputs.StaffApiTargetGroupArn
+        VendorApiTargetGroupArn: !GetAtt TargetGroupsStack.Outputs.VendorApiTargetGroupArn
+        StaffApiDesiredCount: !Ref StaffApiDesiredCount
+        VendorApiDesiredCount: !Ref VendorApiDesiredCount
+        PrivateSubnet1Id: !Sub '{{resolve:ssm:/${ProjectName}/${Environment}/network/private-subnet-1-id}}'
+        PrivateSubnet2Id: !If
+          - IsMultiAZ
+          - !Sub '{{resolve:ssm:/${ProjectName}/${Environment}/network/private-subnet-2-id}}'
+          - !Ref AWS::NoValue
+        ECSSecurityGroupId: !Sub '{{resolve:ssm:/${ProjectName}/${Environment}/network/ecs-security-group-id}}'
+        IsMultiAZ: !If [IsMultiAZ, 'true', 'false']
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-ecs-services-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  ECSClusterArn:
+    Description: ECS Cluster ARN
+    Value: !GetAtt ECSClusterStack.Outputs.ECSClusterArn
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-ECSClusterArn
+
+  StaffALBDNSName:
+    Description: Staff ALB DNS Name
+    Value: !GetAtt ALBStack.Outputs.StaffALBDNSName
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-StaffALBDNSName
+
+  VendorALBDNSName:
+    Description: Vendor ALB DNS Name
+    Value: !GetAtt ALBStack.Outputs.VendorALBDNSName
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-VendorALBDNSName

@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Database Stack - RDS PostgreSQL, DB Subnet Group, Parameter Group'
+
+# ==============================================================================
+# Metadata
+# ==============================================================================
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Project Configuration
+        Parameters:
+          - ProjectName
+          - Environment
+      - Label:
+          default: Database Configuration
+        Parameters:
+          - DBInstanceClass
+          - DBAllocatedStorage
+          - DBMasterUsername
+          - DBMasterPassword
+          - DBBackupRetentionPeriod
+          - PITRBackupRetentionPeriod
+      - Label:
+          default: S3 Template Bucket
+        Parameters:
+          - TemplateBucketName
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Default: facilities
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Default: dev
+    Description: Environment name
+
+  DBInstanceClass:
+    Type: String
+    Description: RDS instance class
+
+  DBAllocatedStorage:
+    Type: Number
+    Description: Allocated storage size in GB
+
+  DBMasterUsername:
+    Type: String
+    Default: admin
+    Description: Master username for RDS
+
+  DBMasterPassword:
+    Type: String
+    NoEcho: true
+    Description: Master password for RDS (store in Secrets Manager)
+
+  DBBackupRetentionPeriod:
+    Type: Number
+    Description: Backup retention period in days
+
+  PITRBackupRetentionPeriod:
+    Type: Number
+    Description: Point-in-time recovery backup retention period in days
+
+  TemplateBucketName:
+    Type: String
+    Description: S3 bucket name for nested templates
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  IsMultiAZ: !Or
+    - !Equals [!Ref Environment, stg]
+    - !Equals [!Ref Environment, prod]
+
+# ==============================================================================
+# Resources (Nested Stacks)
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # DB Subnet Group Stack
+  # --------------------------------------------------------------------------
+  DBSubnetGroupStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/02-database/nested/db-subnet-group.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        DBSubnet1Id: !Sub '{{resolve:ssm:/${ProjectName}/${Environment}/network/db-subnet-1-id}}'
+        DBSubnet2Id: !If
+          - IsMultiAZ
+          - !Sub '{{resolve:ssm:/${ProjectName}/${Environment}/network/db-subnet-2-id}}'
+          - !Ref AWS::NoValue
+        IsMultiAZ: !If [IsMultiAZ, 'true', 'false']
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-db-subnet-group-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Parameter Group Stack
+  # --------------------------------------------------------------------------
+  ParameterGroupStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/02-database/nested/parameter-group.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-parameter-group-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # RDS PostgreSQL Stack
+  # --------------------------------------------------------------------------
+  RDSPostgreSQLStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - DBSubnetGroupStack
+      - ParameterGroupStack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/02-database/nested/rds-postgresql.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        DBInstanceClass: !Ref DBInstanceClass
+        DBAllocatedStorage: !Ref DBAllocatedStorage
+        DBMasterUsername: !Ref DBMasterUsername
+        DBMasterPassword: !Ref DBMasterPassword
+        DBBackupRetentionPeriod: !Ref DBBackupRetentionPeriod
+        PITRBackupRetentionPeriod: !Ref PITRBackupRetentionPeriod
+        DBSubnetGroupName: !GetAtt DBSubnetGroupStack.Outputs.DBSubnetGroupName
+        DBParameterGroupName: !GetAtt ParameterGroupStack.Outputs.DBParameterGroupName
+        VPCSecurityGroupId: !Sub '{{resolve:ssm:/${ProjectName}/${Environment}/network/rds-security-group-id}}'
+        IsMultiAZ: !If [IsMultiAZ, 'true', 'false']
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-rds-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  DBInstanceEndpoint:
+    Description: RDS instance endpoint
+    Value: !GetAtt RDSPostgreSQLStack.Outputs.DBInstanceEndpoint
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-DBInstanceEndpoint
+
+  DBInstanceIdentifier:
+    Description: RDS instance identifier
+    Value: !GetAtt RDSPostgreSQLStack.Outputs.DBInstanceIdentifier
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-DBInstanceIdentifier

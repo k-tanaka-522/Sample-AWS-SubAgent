@@ -94,6 +94,7 @@ Parameters:
 # ==============================================================================
 Conditions:
   UseS3Templates: !Not [!Equals [!Ref TemplateS3Bucket, ""]]
+  HasDirectConnectConnection: !Not [!Equals [!Ref DirectConnectConnectionId, ""]]
 
 # ==============================================================================
 # Resources
@@ -278,6 +279,6 @@ Outputs:
   DirectConnectStatus:
     Description: Direct Connect Connection Status
     Value: !If
-      - UseS3Templates
+      - HasDirectConnectConnection
       - "Direct Connect Connection ID provided - check VIF status in console"
       - "No Direct Connect Connection ID provided - will create VIF after receiving connection from partner"

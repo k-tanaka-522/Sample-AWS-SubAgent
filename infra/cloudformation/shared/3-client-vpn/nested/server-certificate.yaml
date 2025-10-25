@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ACM Server Certificate for Client VPN Endpoint (Self-Signed)
+
+# ==============================================================================
+# 重要な注意事項
+# ==============================================================================
+# このテンプレートは、ACM で自己署名証明書（Self-Signed Certificate）を
+# 作成することはできません。CloudFormation では以下の方法しかありません：
+#
+# 1. ACM Private CA を使用（月額 $400、高額）
+# 2. 事前に手動で証明書を作成し、ARN をパラメーターで渡す
+#
+# このテンプレートでは、**手動作成を前提**としています。
+# 以下の手順で証明書を作成してください。
+# ==============================================================================
+
+# ==============================================================================
+# サーバー証明書の手動作成手順（OpenSSL 使用）
+# ==============================================================================
+#
+# 1. プライベートキーとサーバー証明書の作成（自己署名）
+#
+# ```bash
+# # 1. プライベートキーを生成
+# openssl genrsa -out server.key 2048
+#
+# # 2. 証明書署名要求（CSR）を作成
+# openssl req -new -key server.key -out server.csr -subj "/C=JP/ST=Tokyo/L=Tokyo/O=Facilities/CN=server"
+#
+# # 3. 自己署名証明書を生成（有効期限: 10年）
+# openssl x509 -req -in server.csr -signkey server.key -out server.crt -days 3650
+#
+# # 4. ACM にインポート
+# aws acm import-certificate \
+#   --certificate fileb://server.crt \
+#   --private-key fileb://server.key \
+#   --region ap-northeast-1
+#
+# # 5. ARN をメモして、親スタックの ServerCertificateArn パラメーターに指定
+# ```
+#
+# ==============================================================================
+
+# ==============================================================================
+# クライアント証明書の手動作成手順（拠点ごとに作成）
+# ==============================================================================
+#
+# 拠点ごとにクライアント証明書を作成します（例: 拠点01～20）。
+#
+# ```bash
+# # 1. クライアントのプライベートキーを生成
+# openssl genrsa -out client01.key 2048
+#
+# # 2. クライアント証明書署名要求（CSR）を作成
+# openssl req -new -key client01.key -out client01.csr -subj "/C=JP/ST=Tokyo/L=Tokyo/O=Facilities/CN=client01"
+#
+# # 3. クライアント証明書を生成（サーバー証明書で署名）
+# openssl x509 -req -in client01.csr -CA server.crt -CAkey server.key -CAcreateserial -out client01.crt -days 3650
+#
+# # 4. ACM にインポート
+# aws acm import-certificate \
+#   --certificate fileb://client01.crt \
+#   --private-key fileb://client01.key \
+#   --certificate-chain fileb://server.crt \
+#   --region ap-northeast-1
+#
+# # 5. ARN をメモ（Client VPN Endpoint の認証設定に使用）
+# ```
+#
+# 拠点02～20 も同様に作成してください。
+#
+# ==============================================================================
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # ダミーリソース（証明書は手動作成のため、CloudFormation管理外）
+  # ------------------------------------------------------------------------------
+  DummyWaitConditionHandle:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    # このリソースは何も作成しません。
+    # スタックとして最低1つのリソースが必要なため、ダミーとして配置。
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  ServerCertificateArn:
+    Description: |
+      ACM Server Certificate ARN (must be created manually).
+
+      手動作成手順:
+      1. OpenSSL でサーバー証明書を作成（上記の手順参照）
+      2. ACM にインポート
+      3. ARN をメモして、親スタックの ServerCertificateArn パラメーターに指定
+
+      この Output は常に空文字列を返します。
+    Value: ""
+
+  ManualSteps:
+    Description: Manual steps to create certificates
+    Value: |
+      ==============================================================================
+      サーバー証明書の手動作成が必要です
+      ==============================================================================
+
+      1. OpenSSL でサーバー証明書を作成:
+         openssl genrsa -out server.key 2048
+         openssl req -new -key server.key -out server.csr -subj "/C=JP/ST=Tokyo/L=Tokyo/O=Facilities/CN=server"
+         openssl x509 -req -in server.csr -signkey server.key -out server.crt -days 3650
+
+      2. ACM にインポート:
+         aws acm import-certificate \
+           --certificate fileb://server.crt \
+           --private-key fileb://server.key \
+           --region ap-northeast-1
+
+      3. クライアント証明書を作成（拠点ごと、例: client01）:
+         openssl genrsa -out client01.key 2048
+         openssl req -new -key client01.key -out client01.csr -subj "/C=JP/ST=Tokyo/L=Tokyo/O=Facilities/CN=client01"
+         openssl x509 -req -in client01.csr -CA server.crt -CAkey server.key -CAcreateserial -out client01.crt -days 3650
+         aws acm import-certificate \
+           --certificate fileb://client01.crt \
+           --private-key fileb://client01.key \
+           --certificate-chain fileb://server.crt \
+           --region ap-northeast-1
+
+      4. サーバー証明書の ARN を親スタックの ServerCertificateArn パラメーターに指定
+
+      ==============================================================================

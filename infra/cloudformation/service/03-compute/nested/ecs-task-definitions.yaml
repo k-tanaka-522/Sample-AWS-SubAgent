@@ -1,0 +1,283 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'ECS Task Definitions - staff-api, vendor-api, batch'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+  StaffApiTaskCpu:
+    Type: Number
+    Description: Staff API task CPU
+
+  StaffApiTaskMemory:
+    Type: Number
+    Description: Staff API task memory
+
+  VendorApiTaskCpu:
+    Type: Number
+    Description: Vendor API task CPU
+
+  VendorApiTaskMemory:
+    Type: Number
+    Description: Vendor API task memory
+
+  BatchTaskCpu:
+    Type: Number
+    Description: Batch task CPU
+
+  BatchTaskMemory:
+    Type: Number
+    Description: Batch task memory
+
+  ECRRepositoryUri:
+    Type: String
+    Description: ECR repository URI
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # Task Execution Role
+  # --------------------------------------------------------------------------
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-${Environment}-ecs-task-execution-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${ProjectName}/${Environment}/*
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-ecs-task-execution-role
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Task Role
+  # --------------------------------------------------------------------------
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-${Environment}-ecs-task-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Sub arn:aws:s3:::${ProjectName}-${Environment}-*/*
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-ecs-task-role
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # CloudWatch Log Group (Staff API)
+  # --------------------------------------------------------------------------
+  StaffApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${ProjectName}-${Environment}-staff-api
+      RetentionInDays: 90
+
+  # --------------------------------------------------------------------------
+  # CloudWatch Log Group (Vendor API)
+  # --------------------------------------------------------------------------
+  VendorApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${ProjectName}-${Environment}-vendor-api
+      RetentionInDays: 90
+
+  # --------------------------------------------------------------------------
+  # CloudWatch Log Group (Batch)
+  # --------------------------------------------------------------------------
+  BatchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${ProjectName}-${Environment}-batch
+      RetentionInDays: 90
+
+  # --------------------------------------------------------------------------
+  # Task Definition (Staff API)
+  # --------------------------------------------------------------------------
+  StaffApiTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${ProjectName}-staff-api
+      Cpu: !Ref StaffApiTaskCpu
+      Memory: !Ref StaffApiTaskMemory
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+        - Name: staff-api
+          Image: !Sub ${ECRRepositoryUri}:staff-api-${Environment}
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+          Environment:
+            - Name: NODE_ENV
+              Value: !Ref Environment
+            - Name: APP_NAME
+              Value: staff-api
+          Secrets:
+            - Name: DB_HOST
+              ValueFrom: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${ProjectName}/${Environment}/db-credentials:host::
+            - Name: DB_PASSWORD
+              ValueFrom: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${ProjectName}/${Environment}/db-credentials:password::
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref StaffApiLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: staff-api
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-staff-api
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Task Definition (Vendor API)
+  # --------------------------------------------------------------------------
+  VendorApiTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${ProjectName}-vendor-api
+      Cpu: !Ref VendorApiTaskCpu
+      Memory: !Ref VendorApiTaskMemory
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+        - Name: vendor-api
+          Image: !Sub ${ECRRepositoryUri}:vendor-api-${Environment}
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+          Environment:
+            - Name: NODE_ENV
+              Value: !Ref Environment
+            - Name: APP_NAME
+              Value: vendor-api
+          Secrets:
+            - Name: DB_HOST
+              ValueFrom: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${ProjectName}/${Environment}/db-credentials:host::
+            - Name: DB_PASSWORD
+              ValueFrom: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${ProjectName}/${Environment}/db-credentials:password::
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref VendorApiLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: vendor-api
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-vendor-api
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Task Definition (Batch)
+  # --------------------------------------------------------------------------
+  BatchTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${ProjectName}-batch
+      Cpu: !Ref BatchTaskCpu
+      Memory: !Ref BatchTaskMemory
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+        - Name: batch
+          Image: !Sub ${ECRRepositoryUri}:batch-${Environment}
+          Environment:
+            - Name: NODE_ENV
+              Value: !Ref Environment
+            - Name: APP_NAME
+              Value: batch
+          Secrets:
+            - Name: DB_HOST
+              ValueFrom: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${ProjectName}/${Environment}/db-credentials:host::
+            - Name: DB_PASSWORD
+              ValueFrom: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${ProjectName}/${Environment}/db-credentials:password::
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref BatchLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: batch
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-batch
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  StaffApiTaskDefinitionArn:
+    Description: Staff API Task Definition ARN
+    Value: !Ref StaffApiTaskDefinition
+
+  VendorApiTaskDefinitionArn:
+    Description: Vendor API Task Definition ARN
+    Value: !Ref VendorApiTaskDefinition
+
+  BatchTaskDefinitionArn:
+    Description: Batch Task Definition ARN
+    Value: !Ref BatchTaskDefinition

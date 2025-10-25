@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'NAT Gateway - Elastic IP and NAT Gateway'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+  PublicSubnet1Id:
+    Type: String
+    Description: Public Subnet 1 ID
+
+  PublicSubnet2Id:
+    Type: String
+    Default: ''
+    Description: Public Subnet 2 ID (optional for Multi-AZ)
+
+  IsMultiAZ:
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+    Description: Whether to create resources in multiple AZs
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  CreateMultiAZ: !Equals [!Ref IsMultiAZ, 'true']
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # Elastic IP 1 (AZ-a)
+  # --------------------------------------------------------------------------
+  EIP1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-nat-eip-1
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Elastic IP 2 (AZ-c) - Multi-AZ only
+  # --------------------------------------------------------------------------
+  EIP2:
+    Condition: CreateMultiAZ
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-nat-eip-2
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # NAT Gateway 1 (AZ-a)
+  # --------------------------------------------------------------------------
+  NATGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIP1.AllocationId
+      SubnetId: !Ref PublicSubnet1Id
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-nat-1
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # NAT Gateway 2 (AZ-c) - Multi-AZ only
+  # --------------------------------------------------------------------------
+  NATGateway2:
+    Condition: CreateMultiAZ
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIP2.AllocationId
+      SubnetId: !Ref PublicSubnet2Id
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-nat-2
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  NATGateway1Id:
+    Description: NAT Gateway 1 ID
+    Value: !Ref NATGateway1
+
+  NATGateway2Id:
+    Condition: CreateMultiAZ
+    Description: NAT Gateway 2 ID
+    Value: !Ref NATGateway2

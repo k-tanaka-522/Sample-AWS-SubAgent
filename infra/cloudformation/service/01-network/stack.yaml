@@ -1,0 +1,313 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Network Stack - VPC, Subnets, NAT Gateway, Transit Gateway Attachment, Security Groups'
+
+# ==============================================================================
+# Metadata
+# ==============================================================================
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Project Configuration
+        Parameters:
+          - ProjectName
+          - Environment
+      - Label:
+          default: Network Configuration
+        Parameters:
+          - VpcCidr
+          - AvailabilityZone1
+          - AvailabilityZone2
+      - Label:
+          default: Transit Gateway Configuration
+        Parameters:
+          - TransitGatewayId
+      - Label:
+          default: S3 Template Bucket
+        Parameters:
+          - TemplateBucketName
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Default: facilities
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
+      - stg
+      - prod
+    Default: dev
+    Description: Environment name
+
+  VpcCidr:
+    Type: String
+    Description: VPC CIDR block
+    AllowedPattern: ^(10\.\d{1,3}\.\d{1,3}\.\d{1,3}/16)$
+
+  AvailabilityZone1:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: ap-northeast-1a
+    Description: First Availability Zone
+
+  AvailabilityZone2:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: ap-northeast-1c
+    Description: Second Availability Zone
+
+  TransitGatewayId:
+    Type: String
+    Description: Transit Gateway ID (shared from Shared Account via RAM)
+
+  TemplateBucketName:
+    Type: String
+    Description: S3 bucket name for nested templates
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  IsMultiAZ: !Or
+    - !Equals [!Ref Environment, stg]
+    - !Equals [!Ref Environment, prod]
+
+# ==============================================================================
+# Resources (Nested Stacks)
+# ==============================================================================
+Resources:
+  # --------------------------------------------------------------------------
+  # VPC Stack
+  # --------------------------------------------------------------------------
+  VPCStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/01-network/nested/vpc.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        VpcCidr: !Ref VpcCidr
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-vpc-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Subnets Stack
+  # --------------------------------------------------------------------------
+  SubnetsStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: VPCStack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/01-network/nested/subnets.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        VpcId: !GetAtt VPCStack.Outputs.VpcId
+        VpcCidr: !Ref VpcCidr
+        AvailabilityZone1: !Ref AvailabilityZone1
+        AvailabilityZone2: !Ref AvailabilityZone2
+        IsMultiAZ: !If [IsMultiAZ, 'true', 'false']
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-subnets-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # NAT Gateway Stack
+  # --------------------------------------------------------------------------
+  NATGatewayStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: SubnetsStack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/01-network/nested/nat-gateway.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        PublicSubnet1Id: !GetAtt SubnetsStack.Outputs.PublicSubnet1Id
+        PublicSubnet2Id: !If
+          - IsMultiAZ
+          - !GetAtt SubnetsStack.Outputs.PublicSubnet2Id
+          - !Ref AWS::NoValue
+        IsMultiAZ: !If [IsMultiAZ, 'true', 'false']
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-nat-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Route Tables Stack
+  # --------------------------------------------------------------------------
+  RouteTablesStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: NATGatewayStack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/01-network/nested/route-tables.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        VpcId: !GetAtt VPCStack.Outputs.VpcId
+        InternetGatewayId: !GetAtt VPCStack.Outputs.InternetGatewayId
+        NATGateway1Id: !GetAtt NATGatewayStack.Outputs.NATGateway1Id
+        NATGateway2Id: !If
+          - IsMultiAZ
+          - !GetAtt NATGatewayStack.Outputs.NATGateway2Id
+          - !Ref AWS::NoValue
+        PublicSubnet1Id: !GetAtt SubnetsStack.Outputs.PublicSubnet1Id
+        PublicSubnet2Id: !If
+          - IsMultiAZ
+          - !GetAtt SubnetsStack.Outputs.PublicSubnet2Id
+          - !Ref AWS::NoValue
+        PrivateSubnet1Id: !GetAtt SubnetsStack.Outputs.PrivateSubnet1Id
+        PrivateSubnet2Id: !If
+          - IsMultiAZ
+          - !GetAtt SubnetsStack.Outputs.PrivateSubnet2Id
+          - !Ref AWS::NoValue
+        DBSubnet1Id: !GetAtt SubnetsStack.Outputs.DBSubnet1Id
+        DBSubnet2Id: !If
+          - IsMultiAZ
+          - !GetAtt SubnetsStack.Outputs.DBSubnet2Id
+          - !Ref AWS::NoValue
+        IsMultiAZ: !If [IsMultiAZ, 'true', 'false']
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-route-tables-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Security Groups Stack
+  # --------------------------------------------------------------------------
+  SecurityGroupsStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: VPCStack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/01-network/nested/security-groups.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        VpcId: !GetAtt VPCStack.Outputs.VpcId
+        VpcCidr: !Ref VpcCidr
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-security-groups-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+  # --------------------------------------------------------------------------
+  # Transit Gateway Attachment Stack
+  # --------------------------------------------------------------------------
+  TransitGatewayAttachmentStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - SubnetsStack
+      - RouteTablesStack
+    Properties:
+      TemplateURL: !Sub https://${TemplateBucketName}.s3.${AWS::Region}.amazonaws.com/service/01-network/nested/transit-gateway-attachment.yaml
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        TransitGatewayId: !Ref TransitGatewayId
+        VpcId: !GetAtt VPCStack.Outputs.VpcId
+        PrivateSubnet1Id: !GetAtt SubnetsStack.Outputs.PrivateSubnet1Id
+        PrivateSubnet2Id: !If
+          - IsMultiAZ
+          - !GetAtt SubnetsStack.Outputs.PrivateSubnet2Id
+          - !Ref AWS::NoValue
+        PrivateRouteTable1Id: !GetAtt RouteTablesStack.Outputs.PrivateRouteTable1Id
+        PrivateRouteTable2Id: !If
+          - IsMultiAZ
+          - !GetAtt RouteTablesStack.Outputs.PrivateRouteTable2Id
+          - !Ref AWS::NoValue
+        IsMultiAZ: !If [IsMultiAZ, 'true', 'false']
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-${Environment}-tgw-attachment-stack
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: !Ref ProjectName
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  VpcId:
+    Description: VPC ID
+    Value: !GetAtt VPCStack.Outputs.VpcId
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-VpcId
+
+  PublicSubnet1Id:
+    Description: Public Subnet 1 ID
+    Value: !GetAtt SubnetsStack.Outputs.PublicSubnet1Id
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-PublicSubnet1Id
+
+  PublicSubnet2Id:
+    Condition: IsMultiAZ
+    Description: Public Subnet 2 ID
+    Value: !GetAtt SubnetsStack.Outputs.PublicSubnet2Id
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-PublicSubnet2Id
+
+  PrivateSubnet1Id:
+    Description: Private Subnet 1 ID
+    Value: !GetAtt SubnetsStack.Outputs.PrivateSubnet1Id
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-PrivateSubnet1Id
+
+  PrivateSubnet2Id:
+    Condition: IsMultiAZ
+    Description: Private Subnet 2 ID
+    Value: !GetAtt SubnetsStack.Outputs.PrivateSubnet2Id
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-PrivateSubnet2Id
+
+  DBSubnet1Id:
+    Description: DB Subnet 1 ID
+    Value: !GetAtt SubnetsStack.Outputs.DBSubnet1Id
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-DBSubnet1Id
+
+  DBSubnet2Id:
+    Condition: IsMultiAZ
+    Description: DB Subnet 2 ID
+    Value: !GetAtt SubnetsStack.Outputs.DBSubnet2Id
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-DBSubnet2Id
+
+  ALBSecurityGroupId:
+    Description: ALB Security Group ID
+    Value: !GetAtt SecurityGroupsStack.Outputs.ALBSecurityGroupId
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-ALBSecurityGroupId
+
+  ECSSecurityGroupId:
+    Description: ECS Security Group ID
+    Value: !GetAtt SecurityGroupsStack.Outputs.ECSSecurityGroupId
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-ECSSecurityGroupId
+
+  RDSSecurityGroupId:
+    Description: RDS Security Group ID
+    Value: !GetAtt SecurityGroupsStack.Outputs.RDSSecurityGroupId
+    Export:
+      Name: !Sub ${ProjectName}-${Environment}-RDSSecurityGroupId
