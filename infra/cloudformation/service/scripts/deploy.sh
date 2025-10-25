@@ -28,7 +28,7 @@ fi
 
 PROJECT_NAME="facilities"
 STACK_NAME="${PROJECT_NAME}-${ENVIRONMENT}-${STACK_TYPE}"
-TEMPLATE_FILE="${STACK_TYPE}/stack.yaml"
+TEMPLATE_FILE="stacks/${STACK_TYPE}/stack.yaml"
 PARAMETERS_FILE="parameters/${ENVIRONMENT}.json"
 
 echo "===================================="
