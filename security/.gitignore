@@ -1,6 +1,0 @@
-node_modules/
-dist/
-coverage/
-cfn-nag-report.txt
-.env
-*.log
