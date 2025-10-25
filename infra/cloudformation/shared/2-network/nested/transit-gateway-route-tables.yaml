@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Transit Gateway Route Tables for Facilities Management System (Shared Account)
+
+# ==============================================================================
+# Metadata
+# ==============================================================================
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Transit Gateway Configuration
+        Parameters:
+          - TransitGatewayId
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  TransitGatewayId:
+    Type: String
+    Description: Transit Gateway ID from transit-gateway stack
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # Transit Gateway Route Table: On-Premises
+  # ------------------------------------------------------------------------------
+  # 用途: 拠点 → Service VPC へのルーティング
+  OnPremisesRouteTable:
+    Type: AWS::EC2::TransitGatewayRouteTable
+    Properties:
+      TransitGatewayId: !Ref TransitGatewayId
+      Tags:
+        - Key: Name
+          Value: tgw-rtb-on-premises
+        - Key: Description
+          Value: Route table for on-premises to Service VPC
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ------------------------------------------------------------------------------
+  # Transit Gateway Route Table: Service VPC
+  # ------------------------------------------------------------------------------
+  # 用途: Service VPC → 拠点へのルーティング
+  ServiceVpcRouteTable:
+    Type: AWS::EC2::TransitGatewayRouteTable
+    Properties:
+      TransitGatewayId: !Ref TransitGatewayId
+      Tags:
+        - Key: Name
+          Value: tgw-rtb-service-vpc
+        - Key: Description
+          Value: Route table for Service VPC to on-premises
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # 注: Service VPC への静的ルートは Service Account デプロイ後に追加
+  # 拠点への静的ルートは Direct Connect Gateway Attachment 作成後に追加
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  OnPremisesRouteTableId:
+    Description: On-Premises Route Table ID
+    Value: !Ref OnPremisesRouteTable
+    Export:
+      Name: !Sub ${AWS::StackName}-OnPremisesRouteTableId
+
+  ServiceVpcRouteTableId:
+    Description: Service VPC Route Table ID
+    Value: !Ref ServiceVpcRouteTable
+    Export:
+      Name: !Sub ${AWS::StackName}-ServiceVpcRouteTableId

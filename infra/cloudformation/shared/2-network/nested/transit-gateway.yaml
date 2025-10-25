@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Transit Gateway for Facilities Management System (Shared Account)
+
+# ==============================================================================
+# Metadata
+# ==============================================================================
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Transit Gateway Configuration
+        Parameters:
+          - AmazonSideAsn
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  AmazonSideAsn:
+    Type: Number
+    Description: Amazon side ASN for Transit Gateway
+    Default: 64512
+    MinValue: 64512
+    MaxValue: 65534
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # Transit Gateway
+  # ------------------------------------------------------------------------------
+  TransitGateway:
+    Type: AWS::EC2::TransitGateway
+    Properties:
+      AmazonSideAsn: !Ref AmazonSideAsn
+      AutoAcceptSharedAttachments: disable
+      DefaultRouteTableAssociation: disable
+      DefaultRouteTablePropagation: disable
+      DnsSupport: enable
+      VpnEcmpSupport: enable
+      MulticastSupport: disable
+      Description: Transit Gateway for facilities management (hub-and-spoke)
+      Tags:
+        - Key: Name
+          Value: facilities-tgw
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  TransitGatewayId:
+    Description: Transit Gateway ID
+    Value: !Ref TransitGateway
+    Export:
+      Name: !Sub ${AWS::StackName}-TransitGatewayId
+
+  TransitGatewayArn:
+    Description: Transit Gateway ARN
+    Value: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:transit-gateway/${TransitGateway}
+    Export:
+      Name: !Sub ${AWS::StackName}-TransitGatewayArn

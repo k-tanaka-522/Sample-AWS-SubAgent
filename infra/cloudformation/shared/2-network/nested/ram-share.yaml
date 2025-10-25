@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Resource Access Manager Share for Transit Gateway (Shared Account)
+
+# ==============================================================================
+# Metadata
+# ==============================================================================
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Transit Gateway Configuration
+        Parameters:
+          - TransitGatewayId
+      - Label:
+          default: Resource Sharing Configuration
+        Parameters:
+          - ServiceAccountId
+          - AllowExternalPrincipals
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  TransitGatewayId:
+    Type: String
+    Description: Transit Gateway ID to share
+
+  ServiceAccountId:
+    Type: String
+    Description: Service Account ID (AWS Account ID, 12-digit number)
+    AllowedPattern: ^\d{12}$
+    ConstraintDescription: Must be a 12-digit AWS Account ID
+
+  AllowExternalPrincipals:
+    Type: String
+    Description: Allow external principals (outside AWS Organization)
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # Resource Access Manager (RAM) Resource Share
+  # ------------------------------------------------------------------------------
+  TransitGatewayShare:
+    Type: AWS::RAM::ResourceShare
+    Properties:
+      Name: facilities-tgw-share
+      AllowExternalPrincipals: !Ref AllowExternalPrincipals
+      Principals:
+        - !Sub arn:aws:iam::${ServiceAccountId}:root
+      ResourceArns:
+        - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:transit-gateway/${TransitGatewayId}
+      Tags:
+        - Key: Name
+          Value: facilities-tgw-share
+        - Key: Description
+          Value: Share Transit Gateway with Service Account
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  ResourceShareId:
+    Description: Resource Share ID
+    Value: !Ref TransitGatewayShare
+    Export:
+      Name: !Sub ${AWS::StackName}-ResourceShareId
+
+  ResourceShareArn:
+    Description: Resource Share ARN
+    Value: !GetAtt TransitGatewayShare.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-ResourceShareArn
+
+  SharedAccountId:
+    Description: Service Account ID (shared with)
+    Value: !Ref ServiceAccountId

@@ -1,0 +1,150 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'S3 Bucket for Organization-wide Audit Logs'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # S3 Bucket for Audit Logs
+  # ------------------------------------------------------------------------------
+  AuditLogsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub '${ProjectName}-shared-audit-logs'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: CloudTrailLogLifecycle
+            Status: Enabled
+            Prefix: cloudtrail/
+            Transitions:
+              - TransitionInDays: 90
+                StorageClass: STANDARD_IA
+              - TransitionInDays: 365
+                StorageClass: GLACIER
+            ExpirationInDays: 730
+          - Id: ConfigLogLifecycle
+            Status: Enabled
+            Prefix: config/
+            Transitions:
+              - TransitionInDays: 90
+                StorageClass: STANDARD_IA
+              - TransitionInDays: 365
+                StorageClass: GLACIER
+            ExpirationInDays: 730
+          - Id: VPCFlowLogLifecycle
+            Status: Enabled
+            Prefix: vpc-flow-logs/
+            Transitions:
+              - TransitionInDays: 90
+                StorageClass: STANDARD_IA
+            ExpirationInDays: 365
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-shared-audit-logs'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ------------------------------------------------------------------------------
+  # Bucket Policy
+  # ------------------------------------------------------------------------------
+  AuditLogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AuditLogsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # CloudTrail のログ書き込み許可
+          - Sid: AWSCloudTrailAclCheck
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !GetAtt AuditLogsBucket.Arn
+          - Sid: AWSCloudTrailWrite
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub '${AuditLogsBucket.Arn}/cloudtrail/*'
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+
+          # AWS Config のログ書き込み許可
+          - Sid: AWSConfigBucketPermissionsCheck
+            Effect: Allow
+            Principal:
+              Service: config.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !GetAtt AuditLogsBucket.Arn
+          - Sid: AWSConfigBucketExistenceCheck
+            Effect: Allow
+            Principal:
+              Service: config.amazonaws.com
+            Action: s3:ListBucket
+            Resource: !GetAtt AuditLogsBucket.Arn
+          - Sid: AWSConfigWrite
+            Effect: Allow
+            Principal:
+              Service: config.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub '${AuditLogsBucket.Arn}/config/*'
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+
+          # VPC Flow Logs のログ書き込み許可
+          - Sid: AWSLogDeliveryAclCheck
+            Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !GetAtt AuditLogsBucket.Arn
+          - Sid: AWSLogDeliveryWrite
+            Effect: Allow
+            Principal:
+              Service: delivery.logs.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub '${AuditLogsBucket.Arn}/vpc-flow-logs/*'
+            Condition:
+              StringEquals:
+                s3:x-amz-acl: bucket-owner-full-control
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  BucketName:
+    Description: Audit Logs Bucket Name
+    Value: !Ref AuditLogsBucket
+
+  BucketArn:
+    Description: Audit Logs Bucket ARN
+    Value: !GetAtt AuditLogsBucket.Arn

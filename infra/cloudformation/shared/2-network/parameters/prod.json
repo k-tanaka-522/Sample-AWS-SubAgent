@@ -1,0 +1,38 @@
+[
+  {
+    "ParameterKey": "ServiceAccountId",
+    "ParameterValue": "123456789012"
+  },
+  {
+    "ParameterKey": "AmazonSideAsn",
+    "ParameterValue": "64512"
+  },
+  {
+    "ParameterKey": "DirectConnectGatewayId",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "DirectConnectConnectionId",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "VlanId",
+    "ParameterValue": "0"
+  },
+  {
+    "ParameterKey": "BgpAsn",
+    "ParameterValue": "65000"
+  },
+  {
+    "ParameterKey": "BgpAuthKey",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "TemplateS3Bucket",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "TemplateS3Prefix",
+    "ParameterValue": "cloudformation/shared/2-network/nested"
+  }
+]

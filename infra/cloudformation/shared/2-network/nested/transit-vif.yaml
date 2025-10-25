@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Transit Virtual Interface (Manual Creation Required)
+
+  CloudFormation does not support AWS::DirectConnect::VirtualInterface resource type.
+  This template is a placeholder. Transit VIF must be created manually.
+
+  Manual Creation Steps:
+  1. AWS Console → Direct Connect → Virtual interfaces
+  2. Create Transit Virtual Interface:
+     - Connection: (from partner)
+     - VIF name: facilities-transit-vif
+     - VIF type: Transit
+     - VLAN: (from partner)
+     - BGP ASN: 65000 (customer router)
+     - BGP authentication key: (optional, MD5)
+     - Amazon address: 169.254.1.1/30
+     - Customer address: 169.254.1.2/30
+     - Direct Connect Gateway: facilities-dxgw
+
+  Alternative: Use AWS CLI
+  aws directconnect create-transit-virtual-interface \
+    --connection-id dxcon-xxxxx \
+    --new-transit-virtual-interface \
+      virtualInterfaceName=facilities-transit-vif,\
+      vlan=100,\
+      asn=65000,\
+      authKey=your-md5-key,\
+      amazonAddress=169.254.1.1/30,\
+      customerAddress=169.254.1.2/30,\
+      directConnectGatewayId=dxgw-xxxxx
+
+  Note: This template exists for documentation purposes only.
+
+# ==============================================================================
+# Metadata
+# ==============================================================================
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Direct Connect Gateway Configuration
+        Parameters:
+          - DirectConnectGatewayId
+      - Label:
+          default: Direct Connect Connection Configuration (from partner)
+        Parameters:
+          - DirectConnectConnectionId
+          - VlanId
+      - Label:
+          default: BGP Configuration
+        Parameters:
+          - BgpAsn
+          - BgpAuthKey
+          - AmazonAddress
+          - CustomerAddress
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  DirectConnectGatewayId:
+    Type: String
+    Description: Direct Connect Gateway ID (created manually)
+    Default: ""
+
+  DirectConnectConnectionId:
+    Type: String
+    Description: Direct Connect Connection ID (from partner, e.g., dxcon-xxxxx)
+    Default: ""
+
+  VlanId:
+    Type: Number
+    Description: VLAN ID for Transit VIF (from partner, 1-4094)
+    Default: 0
+    MinValue: 0
+    MaxValue: 4094
+
+  BgpAsn:
+    Type: Number
+    Description: BGP ASN for customer side router
+    Default: 65000
+    MinValue: 1
+    MaxValue: 2147483647
+
+  BgpAuthKey:
+    Type: String
+    Description: BGP MD5 Authentication Key (leave blank if not using MD5 auth)
+    NoEcho: true
+    Default: ""
+
+  AmazonAddress:
+    Type: String
+    Description: Amazon side BGP IP address (link-local /30)
+    Default: 169.254.1.1/30
+
+  CustomerAddress:
+    Type: String
+    Description: Customer side BGP IP address (link-local /30)
+    Default: 169.254.1.2/30
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  # No resources created by CloudFormation
+  NoResources: !Equals ["true", "true"]
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # No resources - Transit VIF must be created manually
+
+  # Placeholder resource to make CloudFormation happy
+  WaitConditionHandle:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Metadata:
+      ManualCreationRequired: Transit VIF must be created manually via AWS Console or CLI
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  ManualCreationRequired:
+    Description: Manual Creation Required
+    Value: "Transit Virtual Interface must be created manually via AWS Console or CLI"
+
+  ConnectionId:
+    Description: Direct Connect Connection ID (from parameter)
+    Value: !Ref DirectConnectConnectionId
+
+  VlanId:
+    Description: VLAN ID (from parameter)
+    Value: !Ref VlanId
+
+  BgpConfiguration:
+    Description: BGP Configuration Summary
+    Value: !Sub "Amazon IP: ${AmazonAddress}, Customer IP: ${CustomerAddress}, Customer ASN: ${BgpAsn}"

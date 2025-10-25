@@ -1,0 +1,177 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS Config Organization Configuration'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+  AuditLogsBucketName:
+    Type: String
+    Description: S3 Bucket Name for audit logs
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # IAM Role for Config
+  # ------------------------------------------------------------------------------
+  ConfigRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-config-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: config.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/ConfigRole
+      Policies:
+        - PolicyName: ConfigS3Policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetBucketVersioning
+                  - s3:PutObject
+                  - s3:GetBucketAcl
+                Resource:
+                  - !Sub 'arn:aws:s3:::${AuditLogsBucketName}'
+                  - !Sub 'arn:aws:s3:::${AuditLogsBucketName}/*'
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-config-role'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ------------------------------------------------------------------------------
+  # Config Recorder
+  # ------------------------------------------------------------------------------
+  ConfigRecorder:
+    Type: AWS::Config::ConfigurationRecorder
+    DependsOn: ConfigRole
+    Properties:
+      Name: !Sub '${ProjectName}-config-recorder'
+      RoleArn: !GetAtt ConfigRole.Arn
+      RecordingGroup:
+        AllSupported: true
+        IncludeGlobalResourceTypes: true
+
+  # ------------------------------------------------------------------------------
+  # Config Delivery Channel
+  # ------------------------------------------------------------------------------
+  ConfigDeliveryChannel:
+    Type: AWS::Config::DeliveryChannel
+    DependsOn: ConfigRecorder
+    Properties:
+      Name: !Sub '${ProjectName}-config-delivery-channel'
+      S3BucketName: !Ref AuditLogsBucketName
+      S3KeyPrefix: config
+
+  # ------------------------------------------------------------------------------
+  # Config Aggregator (Organization)
+  # ------------------------------------------------------------------------------
+  ConfigAggregator:
+    Type: AWS::Config::ConfigurationAggregator
+    Properties:
+      ConfigurationAggregatorName: !Sub '${ProjectName}-org-config-aggregator'
+      OrganizationAggregationSource:
+        AllAwsRegions: true
+        RoleArn: !GetAtt ConfigRole.Arn
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-org-config-aggregator'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ------------------------------------------------------------------------------
+  # Config Rules
+  # ------------------------------------------------------------------------------
+  EncryptedVolumesRule:
+    Type: AWS::Config::ConfigRule
+    DependsOn: ConfigRecorder
+    Properties:
+      ConfigRuleName: encrypted-volumes
+      Description: Check that EBS volumes are encrypted
+      Source:
+        Owner: AWS
+        SourceIdentifier: ENCRYPTED_VOLUMES
+      Scope:
+        ComplianceResourceTypes:
+          - AWS::EC2::Volume
+
+  RDSEncryptionEnabledRule:
+    Type: AWS::Config::ConfigRule
+    DependsOn: ConfigRecorder
+    Properties:
+      ConfigRuleName: rds-encryption-enabled
+      Description: Check that RDS instances are encrypted
+      Source:
+        Owner: AWS
+        SourceIdentifier: RDS_STORAGE_ENCRYPTED
+      Scope:
+        ComplianceResourceTypes:
+          - AWS::RDS::DBInstance
+
+  S3BucketPublicReadProhibitedRule:
+    Type: AWS::Config::ConfigRule
+    DependsOn: ConfigRecorder
+    Properties:
+      ConfigRuleName: s3-bucket-public-read-prohibited
+      Description: Check that S3 buckets do not allow public read access
+      Source:
+        Owner: AWS
+        SourceIdentifier: S3_BUCKET_PUBLIC_READ_PROHIBITED
+      Scope:
+        ComplianceResourceTypes:
+          - AWS::S3::Bucket
+
+  RootAccountMFAEnabledRule:
+    Type: AWS::Config::ConfigRule
+    DependsOn: ConfigRecorder
+    Properties:
+      ConfigRuleName: root-account-mfa-enabled
+      Description: Check that root account has MFA enabled
+      Source:
+        Owner: AWS
+        SourceIdentifier: ROOT_ACCOUNT_MFA_ENABLED
+      MaximumExecutionFrequency: TwentyFour_Hours
+
+  CloudTrailEnabledRule:
+    Type: AWS::Config::ConfigRule
+    DependsOn: ConfigRecorder
+    Properties:
+      ConfigRuleName: cloudtrail-enabled
+      Description: Check that CloudTrail is enabled
+      Source:
+        Owner: AWS
+        SourceIdentifier: CLOUD_TRAIL_ENABLED
+      MaximumExecutionFrequency: TwentyFour_Hours
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  ConfigRecorderName:
+    Description: Config Recorder Name
+    Value: !Ref ConfigRecorder
+
+  ConfigAggregatorName:
+    Description: Config Aggregator Name
+    Value: !Ref ConfigAggregator
+
+  ConfigRoleArn:
+    Description: Config IAM Role ARN
+    Value: !GetAtt ConfigRole.Arn

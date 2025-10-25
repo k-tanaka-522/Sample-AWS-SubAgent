@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Direct Connect Gateway (Manual Creation Required)
+
+  CloudFormation does not support AWS::DirectConnect::Gateway resource type.
+  This template is a placeholder. Direct Connect Gateway must be created manually.
+
+  Manual Creation Steps:
+  1. AWS Console → Direct Connect → Direct Connect Gateways
+  2. Create Direct Connect Gateway:
+     - Name: facilities-dxgw
+     - ASN: 64512
+  3. Associate with Transit Gateway:
+     - AWS Console → Direct Connect → Direct Connect Gateways → Attachments
+     - Create Transit Gateway Association
+     - Transit Gateway ID: (from Transit Gateway stack output)
+
+  Alternative: Use AWS CLI
+  aws directconnect create-direct-connect-gateway \
+    --direct-connect-gateway-name facilities-dxgw \
+    --amazon-side-asn 64512
+
+  Note: This template exists for documentation purposes only.
+
+# ==============================================================================
+# Metadata
+# ==============================================================================
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Transit Gateway Configuration
+        Parameters:
+          - TransitGatewayId
+      - Label:
+          default: Direct Connect Gateway Configuration (Manual Creation)
+        Parameters:
+          - DirectConnectGatewayId
+          - AmazonSideAsn
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  TransitGatewayId:
+    Type: String
+    Description: Transit Gateway ID (from transit-gateway stack)
+
+  DirectConnectGatewayId:
+    Type: String
+    Description: Direct Connect Gateway ID (created manually)
+    Default: ""
+
+  AmazonSideAsn:
+    Type: Number
+    Description: Amazon side ASN for Direct Connect Gateway (must match Transit Gateway ASN)
+    Default: 64512
+    MinValue: 64512
+    MaxValue: 65534
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  HasDirectConnectGateway: !Not [!Equals [!Ref DirectConnectGatewayId, ""]]
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # Direct Connect Gateway Association with Transit Gateway
+  # ------------------------------------------------------------------------------
+  # Note: Direct Connect Gateway must be created manually first
+  # This resource creates the association between DXGW and TGW
+
+  DirectConnectGatewayAssociation:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Condition: HasDirectConnectGateway
+    Properties:
+      TransitGatewayId: !Ref TransitGatewayId
+      ResourceType: direct-connect-gateway
+      ResourceId: !Ref DirectConnectGatewayId
+      Tags:
+        - Key: Name
+          Value: tgw-attach-dxgw
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  DirectConnectGatewayId:
+    Description: Direct Connect Gateway ID (provided as parameter)
+    Value: !Ref DirectConnectGatewayId
+    Export:
+      Name: !Sub ${AWS::StackName}-DirectConnectGatewayId
+
+  DirectConnectGatewayName:
+    Description: Direct Connect Gateway Name
+    Value: facilities-dxgw
+
+  TransitGatewayAttachmentId:
+    Condition: HasDirectConnectGateway
+    Description: Transit Gateway Attachment ID (Direct Connect Gateway)
+    Value: !Ref DirectConnectGatewayAssociation
+    Export:
+      Name: !Sub ${AWS::StackName}-DxgwAttachmentId
+
+  ManualCreationRequired:
+    Description: Manual Creation Required
+    Value: "Direct Connect Gateway must be created manually via AWS Console or CLI"

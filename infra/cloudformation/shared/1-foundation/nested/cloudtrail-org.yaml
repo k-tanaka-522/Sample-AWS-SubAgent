@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudTrail Organization Trail'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+  AuditLogsBucketName:
+    Type: String
+    Description: S3 Bucket Name for audit logs
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # CloudWatch Logs Group for CloudTrail
+  # ------------------------------------------------------------------------------
+  CloudTrailLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub '/aws/cloudtrail/${ProjectName}-org-trail'
+      RetentionInDays: 90
+
+  # ------------------------------------------------------------------------------
+  # IAM Role for CloudTrail to CloudWatch Logs
+  # ------------------------------------------------------------------------------
+  CloudTrailRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-cloudtrail-cw-logs-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-cloudtrail-role'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ------------------------------------------------------------------------------
+  # CloudTrail (Organization Trail)
+  # ------------------------------------------------------------------------------
+  CloudTrailOrg:
+    Type: AWS::CloudTrail::Trail
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    DependsOn: CloudTrailRole
+    Properties:
+      TrailName: !Sub '${ProjectName}-org-trail'
+      S3BucketName: !Ref AuditLogsBucketName
+      S3KeyPrefix: cloudtrail
+      IsLogging: true
+      IsOrganizationTrail: true
+      IncludeGlobalServiceEvents: true
+      IsMultiRegionTrail: true
+      EnableLogFileValidation: true
+      CloudWatchLogsLogGroupArn: !GetAtt CloudTrailLogGroup.Arn
+      CloudWatchLogsRoleArn: !GetAtt CloudTrailRole.Arn
+      EventSelectors:
+        # Data Events for S3
+        - IncludeManagementEvents: true
+          ReadWriteType: All
+          DataResources:
+            - Type: AWS::S3::Object
+              Values:
+                - arn:aws:s3:::*/
+        # Data Events for Lambda
+        - IncludeManagementEvents: true
+          ReadWriteType: All
+          DataResources:
+            - Type: AWS::Lambda::Function
+              Values:
+                - arn:aws:lambda:*:*:function/*
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-org-trail'
+        - Key: Environment
+          Value: !Ref Environment
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  CloudTrailArn:
+    Description: CloudTrail ARN
+    Value: !GetAtt CloudTrailOrg.Arn
+
+  CloudTrailLogGroupName:
+    Description: CloudWatch Logs Group Name for CloudTrail
+    Value: !Ref CloudTrailLogGroup

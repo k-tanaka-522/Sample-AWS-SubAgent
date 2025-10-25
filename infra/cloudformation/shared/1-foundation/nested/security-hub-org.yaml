@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Security Hub Organization Configuration'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # Security Hub
+  # ------------------------------------------------------------------------------
+  SecurityHub:
+    Type: AWS::SecurityHub::Hub
+    Properties:
+      Tags:
+        Name: !Sub '${ProjectName}-security-hub'
+        Environment: !Ref Environment
+
+  # ------------------------------------------------------------------------------
+  # Enable AWS Foundational Security Best Practices
+  # ------------------------------------------------------------------------------
+  AWSFoundationalSecurityBestPractices:
+    Type: AWS::SecurityHub::Standard
+    DependsOn: SecurityHub
+    Properties:
+      StandardsArn: !Sub 'arn:aws:securityhub:${AWS::Region}::standards/aws-foundational-security-best-practices/v/1.0.0'
+
+  # ------------------------------------------------------------------------------
+  # Enable CIS AWS Foundations Benchmark
+  # ------------------------------------------------------------------------------
+  CISAWSFoundationsBenchmark:
+    Type: AWS::SecurityHub::Standard
+    DependsOn: SecurityHub
+    Properties:
+      StandardsArn: !Sub 'arn:aws:securityhub:${AWS::Region}::standards/cis-aws-foundations-benchmark/v/1.2.0'
+
+  # ------------------------------------------------------------------------------
+  # EventBridge Rule for Security Hub Findings
+  # ------------------------------------------------------------------------------
+  SecurityHubFindingsRule:
+    Type: AWS::Events::Rule
+    DependsOn: SecurityHub
+    Properties:
+      Name: !Sub '${ProjectName}-security-hub-findings'
+      Description: Forward Security Hub findings to SNS
+      State: ENABLED
+      EventPattern:
+        source:
+          - aws.securityhub
+        detail-type:
+          - Security Hub Findings - Imported
+        detail:
+          findings:
+            Severity:
+              Label:
+                - CRITICAL
+                - HIGH
+      Targets:
+        - Arn: !Sub 'arn:aws:sns:${AWS::Region}:${AWS::AccountId}:${ProjectName}-shared-security-alerts'
+          Id: SecurityHubSNSTopic
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  SecurityHubArn:
+    Description: Security Hub ARN
+    Value: !GetAtt SecurityHub.ARN

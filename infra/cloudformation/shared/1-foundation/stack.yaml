@@ -1,0 +1,145 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Shared Account - Foundation Stack (Organizations, CloudTrail, Config, GuardDuty, Security Hub)'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Default: facilities
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - prod
+    Description: Environment name (Shared Account is always prod)
+
+  ServiceAccountId:
+    Type: String
+    Description: Service Account ID (AWS Account ID for member account)
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # S3 Bucket for Audit Logs
+  # ------------------------------------------------------------------------------
+  AuditLogsBucket:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/nested/s3-audit-logs.yaml'
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-shared-audit-logs-bucket'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ------------------------------------------------------------------------------
+  # CloudTrail (Organization Trail)
+  # ------------------------------------------------------------------------------
+  CloudTrailOrg:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: AuditLogsBucket
+    Properties:
+      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/nested/cloudtrail-org.yaml'
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        AuditLogsBucketName: !GetAtt AuditLogsBucket.Outputs.BucketName
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-shared-cloudtrail'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ------------------------------------------------------------------------------
+  # Config (Organization Config)
+  # ------------------------------------------------------------------------------
+  ConfigOrg:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: AuditLogsBucket
+    Properties:
+      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/nested/config-org.yaml'
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+        AuditLogsBucketName: !GetAtt AuditLogsBucket.Outputs.BucketName
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-shared-config'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ------------------------------------------------------------------------------
+  # GuardDuty (Organization GuardDuty)
+  # ------------------------------------------------------------------------------
+  GuardDutyOrg:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/nested/guardduty-org.yaml'
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-shared-guardduty'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ------------------------------------------------------------------------------
+  # Security Hub (Organization Security Hub)
+  # ------------------------------------------------------------------------------
+  SecurityHubOrg:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: GuardDutyOrg
+    Properties:
+      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/nested/security-hub-org.yaml'
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Environment: !Ref Environment
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-shared-security-hub'
+        - Key: Environment
+          Value: !Ref Environment
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  AuditLogsBucketName:
+    Description: Audit Logs S3 Bucket Name
+    Value: !GetAtt AuditLogsBucket.Outputs.BucketName
+    Export:
+      Name: !Sub '${ProjectName}-${Environment}-AuditLogsBucketName'
+
+  CloudTrailArn:
+    Description: CloudTrail ARN
+    Value: !GetAtt CloudTrailOrg.Outputs.CloudTrailArn
+    Export:
+      Name: !Sub '${ProjectName}-${Environment}-CloudTrailArn'
+
+  ConfigAggregatorName:
+    Description: Config Aggregator Name
+    Value: !GetAtt ConfigOrg.Outputs.ConfigAggregatorName
+    Export:
+      Name: !Sub '${ProjectName}-${Environment}-ConfigAggregatorName'
+
+  GuardDutyDetectorId:
+    Description: GuardDuty Detector ID
+    Value: !GetAtt GuardDutyOrg.Outputs.DetectorId
+    Export:
+      Name: !Sub '${ProjectName}-${Environment}-GuardDutyDetectorId'
+
+  SecurityHubArn:
+    Description: Security Hub ARN
+    Value: !GetAtt SecurityHubOrg.Outputs.SecurityHubArn
+    Export:
+      Name: !Sub '${ProjectName}-${Environment}-SecurityHubArn'

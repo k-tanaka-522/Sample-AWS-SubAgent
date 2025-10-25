@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'GuardDuty Organization Configuration'
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    Description: Environment name
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # SNS Topic for GuardDuty Alerts
+  # ------------------------------------------------------------------------------
+  SecurityAlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${ProjectName}-shared-security-alerts'
+      DisplayName: Security Alerts for Shared Account
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-shared-security-alerts'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ------------------------------------------------------------------------------
+  # SNS Topic Policy
+  # ------------------------------------------------------------------------------
+  SecurityAlertsTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref SecurityAlertsTopic
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: SNS:Publish
+            Resource: !Ref SecurityAlertsTopic
+
+  # ------------------------------------------------------------------------------
+  # GuardDuty Detector
+  # ------------------------------------------------------------------------------
+  GuardDutyDetector:
+    Type: AWS::GuardDuty::Detector
+    Properties:
+      Enable: true
+      FindingPublishingFrequency: FIFTEEN_MINUTES
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-guardduty-detector'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ------------------------------------------------------------------------------
+  # EventBridge Rule for GuardDuty Findings
+  # ------------------------------------------------------------------------------
+  GuardDutyFindingsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub '${ProjectName}-guardduty-findings'
+      Description: Forward GuardDuty findings to SNS
+      State: ENABLED
+      EventPattern:
+        source:
+          - aws.guardduty
+        detail-type:
+          - GuardDuty Finding
+      Targets:
+        - Arn: !Ref SecurityAlertsTopic
+          Id: GuardDutySNSTopic
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  DetectorId:
+    Description: GuardDuty Detector ID
+    Value: !Ref GuardDutyDetector
+
+  SecurityAlertsTopicArn:
+    Description: SNS Topic ARN for Security Alerts
+    Value: !Ref SecurityAlertsTopic

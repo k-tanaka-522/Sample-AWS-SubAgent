@@ -1,0 +1,283 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Shared Account Network Hub (Transit Gateway + Direct Connect) - Master Stack
+
+# ==============================================================================
+# Metadata
+# ==============================================================================
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Service Account Configuration
+        Parameters:
+          - ServiceAccountId
+      - Label:
+          default: Transit Gateway Configuration
+        Parameters:
+          - AmazonSideAsn
+      - Label:
+          default: Direct Connect Configuration
+        Parameters:
+          - DirectConnectConnectionId
+          - VlanId
+          - BgpAsn
+          - BgpAuthKey
+      - Label:
+          default: Nested Stack Templates
+        Parameters:
+          - TemplateS3Bucket
+          - TemplateS3Prefix
+
+# ==============================================================================
+# Parameters
+# ==============================================================================
+Parameters:
+  # Service Account Configuration
+  ServiceAccountId:
+    Type: String
+    Description: Service Account ID (AWS Account ID, 12-digit number)
+    AllowedPattern: ^\d{12}$
+    ConstraintDescription: Must be a 12-digit AWS Account ID
+
+  # Transit Gateway Configuration
+  AmazonSideAsn:
+    Type: Number
+    Description: Amazon side ASN for Transit Gateway and Direct Connect Gateway
+    Default: 64512
+    MinValue: 64512
+    MaxValue: 65534
+
+  # Direct Connect Configuration
+  DirectConnectGatewayId:
+    Type: String
+    Description: Direct Connect Gateway ID (must be created manually first). Leave blank if not created yet.
+    Default: ""
+
+  DirectConnectConnectionId:
+    Type: String
+    Description: Direct Connect Connection ID (from partner, e.g., dxcon-xxxxx). Leave blank if not ready.
+    Default: ""
+
+  VlanId:
+    Type: Number
+    Description: VLAN ID for Transit VIF (from partner, 1-4094). Set to 0 if not ready.
+    Default: 0
+    MinValue: 0
+    MaxValue: 4094
+
+  BgpAsn:
+    Type: Number
+    Description: BGP ASN for customer side router
+    Default: 65000
+    MinValue: 1
+    MaxValue: 2147483647
+
+  BgpAuthKey:
+    Type: String
+    Description: BGP MD5 Authentication Key (leave blank if not using MD5 auth)
+    NoEcho: true
+    Default: ""
+
+  # Nested Stack Templates
+  TemplateS3Bucket:
+    Type: String
+    Description: S3 bucket name for nested stack templates (leave blank to use local file:// URLs)
+    Default: ""
+
+  TemplateS3Prefix:
+    Type: String
+    Description: S3 key prefix for nested stack templates
+    Default: cloudformation/shared/2-network/nested
+
+# ==============================================================================
+# Conditions
+# ==============================================================================
+Conditions:
+  UseS3Templates: !Not [!Equals [!Ref TemplateS3Bucket, ""]]
+
+# ==============================================================================
+# Resources
+# ==============================================================================
+Resources:
+  # ------------------------------------------------------------------------------
+  # Transit Gateway Stack
+  # ------------------------------------------------------------------------------
+  TransitGatewayStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !If
+        - UseS3Templates
+        - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/transit-gateway.yaml
+        - nested/transit-gateway.yaml
+      Parameters:
+        AmazonSideAsn: !Ref AmazonSideAsn
+      Tags:
+        - Key: Name
+          Value: facilities-shared-tgw-stack
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ------------------------------------------------------------------------------
+  # Transit Gateway Route Tables Stack
+  # ------------------------------------------------------------------------------
+  TransitGatewayRouteTablesStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: TransitGatewayStack
+    Properties:
+      TemplateURL: !If
+        - UseS3Templates
+        - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/transit-gateway-route-tables.yaml
+        - nested/transit-gateway-route-tables.yaml
+      Parameters:
+        TransitGatewayId: !GetAtt TransitGatewayStack.Outputs.TransitGatewayId
+      Tags:
+        - Key: Name
+          Value: facilities-shared-tgw-rtb-stack
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ------------------------------------------------------------------------------
+  # Direct Connect Gateway Stack
+  # ------------------------------------------------------------------------------
+  DirectConnectGatewayStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: TransitGatewayStack
+    Properties:
+      TemplateURL: !If
+        - UseS3Templates
+        - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/direct-connect-gateway.yaml
+        - nested/direct-connect-gateway.yaml
+      Parameters:
+        TransitGatewayId: !GetAtt TransitGatewayStack.Outputs.TransitGatewayId
+        DirectConnectGatewayId: !Ref DirectConnectGatewayId
+        AmazonSideAsn: !Ref AmazonSideAsn
+      Tags:
+        - Key: Name
+          Value: facilities-shared-dxgw-stack
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ------------------------------------------------------------------------------
+  # Transit Virtual Interface Stack
+  # ------------------------------------------------------------------------------
+  TransitVifStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: DirectConnectGatewayStack
+    Properties:
+      TemplateURL: !If
+        - UseS3Templates
+        - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/transit-vif.yaml
+        - nested/transit-vif.yaml
+      Parameters:
+        DirectConnectGatewayId: !GetAtt DirectConnectGatewayStack.Outputs.DirectConnectGatewayId
+        DirectConnectConnectionId: !Ref DirectConnectConnectionId
+        VlanId: !Ref VlanId
+        BgpAsn: !Ref BgpAsn
+        BgpAuthKey: !Ref BgpAuthKey
+      Tags:
+        - Key: Name
+          Value: facilities-shared-transit-vif-stack
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # ------------------------------------------------------------------------------
+  # Resource Access Manager (RAM) Share Stack
+  # ------------------------------------------------------------------------------
+  RamShareStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: TransitGatewayStack
+    Properties:
+      TemplateURL: !If
+        - UseS3Templates
+        - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/ram-share.yaml
+        - nested/ram-share.yaml
+      Parameters:
+        TransitGatewayId: !GetAtt TransitGatewayStack.Outputs.TransitGatewayId
+        ServiceAccountId: !Ref ServiceAccountId
+      Tags:
+        - Key: Name
+          Value: facilities-shared-ram-stack
+        - Key: Environment
+          Value: shared
+        - Key: ManagedBy
+          Value: CloudFormation
+
+# ==============================================================================
+# Outputs
+# ==============================================================================
+Outputs:
+  # Transit Gateway
+  TransitGatewayId:
+    Description: Transit Gateway ID
+    Value: !GetAtt TransitGatewayStack.Outputs.TransitGatewayId
+    Export:
+      Name: !Sub ${AWS::StackName}-TransitGatewayId
+
+  TransitGatewayArn:
+    Description: Transit Gateway ARN
+    Value: !GetAtt TransitGatewayStack.Outputs.TransitGatewayArn
+    Export:
+      Name: !Sub ${AWS::StackName}-TransitGatewayArn
+
+  # Transit Gateway Route Tables
+  OnPremisesRouteTableId:
+    Description: On-Premises Route Table ID (for Direct Connect Gateway attachment)
+    Value: !GetAtt TransitGatewayRouteTablesStack.Outputs.OnPremisesRouteTableId
+    Export:
+      Name: !Sub ${AWS::StackName}-OnPremisesRouteTableId
+
+  ServiceVpcRouteTableId:
+    Description: Service VPC Route Table ID (for Service VPC attachments)
+    Value: !GetAtt TransitGatewayRouteTablesStack.Outputs.ServiceVpcRouteTableId
+    Export:
+      Name: !Sub ${AWS::StackName}-ServiceVpcRouteTableId
+
+  # Direct Connect Gateway
+  DirectConnectGatewayId:
+    Description: Direct Connect Gateway ID
+    Value: !GetAtt DirectConnectGatewayStack.Outputs.DirectConnectGatewayId
+    Export:
+      Name: !Sub ${AWS::StackName}-DirectConnectGatewayId
+
+  DirectConnectGatewayName:
+    Description: Direct Connect Gateway Name
+    Value: !GetAtt DirectConnectGatewayStack.Outputs.DirectConnectGatewayName
+
+  TransitGatewayAttachmentId:
+    Description: Transit Gateway Attachment ID (Direct Connect Gateway)
+    Value: !GetAtt DirectConnectGatewayStack.Outputs.TransitGatewayAttachmentId
+    Export:
+      Name: !Sub ${AWS::StackName}-DxgwAttachmentId
+
+  # Resource Access Manager
+  ResourceShareId:
+    Description: Resource Share ID
+    Value: !GetAtt RamShareStack.Outputs.ResourceShareId
+    Export:
+      Name: !Sub ${AWS::StackName}-ResourceShareId
+
+  ResourceShareArn:
+    Description: Resource Share ARN
+    Value: !GetAtt RamShareStack.Outputs.ResourceShareArn
+    Export:
+      Name: !Sub ${AWS::StackName}-ResourceShareArn
+
+  # Configuration Summary
+  SharedWithServiceAccount:
+    Description: Service Account ID (Transit Gateway shared with)
+    Value: !Ref ServiceAccountId
+
+  DirectConnectStatus:
+    Description: Direct Connect Connection Status
+    Value: !If
+      - UseS3Templates
+      - "Direct Connect Connection ID provided - check VIF status in console"
+      - "No Direct Connect Connection ID provided - will create VIF after receiving connection from partner"
