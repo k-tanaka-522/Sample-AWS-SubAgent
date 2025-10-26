@@ -1,0 +1,189 @@
+<mxfile host="app.diagrams.net" modified="2025-10-26T00:00:00.000Z" agent="Claude" etag="CICD-Flow-v1" version="24.0.0">
+  <diagram name="CICD Flow" id="cicd-flow">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="CICD Flow - GitHub Actions + CloudFormation" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Developer Section -->
+        <mxCell id="dev-section" value="Developer" style="swimlane;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="280" height="700" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-1" value="1. ブランチ作成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="dev-section">
+          <mxGeometry x="40" y="40" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-2" value="2. コード変更&#xa;(CloudFormation)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="dev-section">
+          <mxGeometry x="40" y="110" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-3" value="3. コミット・プッシュ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="dev-section">
+          <mxGeometry x="40" y="180" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-4" value="4. PR作成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="dev-section">
+          <mxGeometry x="40" y="250" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-5" value="10. Change Set確認" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="dev-section">
+          <mxGeometry x="40" y="460" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-6" value="11. PR承認" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="dev-section">
+          <mxGeometry x="40" y="530" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dev-7" value="12. マージ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="dev-section">
+          <mxGeometry x="40" y="600" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- GitHub Actions Section -->
+        <mxCell id="gha-section" value="GitHub Actions" style="swimlane;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="360" y="80" width="320" height="700" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gha-1" value="5. Preview Job 起動" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="gha-section">
+          <mxGeometry x="40" y="250" width="240" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gha-2" value="6. OIDC認証" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="gha-section">
+          <mxGeometry x="40" y="310" width="240" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gha-3" value="7. パラメーターフィルタリング" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="gha-section">
+          <mxGeometry x="40" y="360" width="240" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gha-4" value="8. Change Set 作成&#xa;(全スタック)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="gha-section">
+          <mxGeometry x="40" y="410" width="240" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gha-5" value="9. PRコメント投稿&#xa;(差分レポート)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="gha-section">
+          <mxGeometry x="40" y="460" width="240" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gha-6" value="13. Deploy Job 起動" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="gha-section">
+          <mxGeometry x="40" y="600" width="240" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gha-7" value="14. OIDC認証" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="gha-section">
+          <mxGeometry x="40" y="650" width="240" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- AWS Section -->
+        <mxCell id="aws-section" value="AWS" style="swimlane;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="400" height="700" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aws-1" value="STS: AssumeRoleWithWebIdentity&#xa;(OIDC認証)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="aws-section">
+          <mxGeometry x="40" y="310" width="320" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aws-2" value="CloudFormation:&#xa;CreateChangeSet (全スタック)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="aws-section">
+          <mxGeometry x="40" y="410" width="320" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aws-3" value="CloudFormation:&#xa;ExecuteChangeSet (全スタック)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="aws-section">
+          <mxGeometry x="40" y="620" width="320" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aws-4" value="リソース作成・更新&#xa;(VPC, RDS, ECS, etc.)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="aws-section">
+          <mxGeometry x="40" y="670" width="320" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows: Developer to GitHub Actions -->
+        <mxCell id="arrow-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="dev-4" target="gha-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="dev-7" target="gha-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows: GitHub Actions to AWS -->
+        <mxCell id="arrow-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="gha-2" target="aws-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="gha-4" target="aws-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;endArrow=block;endFill=1;strokeColor=#b85450;" edge="1" parent="1" source="gha-7" target="aws-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows: GitHub Actions to Developer -->
+        <mxCell id="arrow-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1" source="gha-5" target="dev-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Vertical arrows within sections -->
+        <mxCell id="arrow-dev-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="dev-1" target="dev-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-dev-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="dev-2" target="dev-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-dev-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="dev-3" target="dev-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-dev-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="dev-5" target="dev-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-dev-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="dev-6" target="dev-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow-gha-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="gha-1" target="gha-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-gha-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="gha-2" target="gha-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-gha-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="gha-3" target="gha-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-gha-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="gha-4" target="gha-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-gha-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=block;endFill=1;strokeColor=#b85450;" edge="1" parent="1" source="gha-6" target="gha-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow-aws-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=block;endFill=1;strokeColor=#b85450;" edge="1" parent="1" source="aws-3" target="aws-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="Legend" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="800" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-1" value="Preview (Change Set作成)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="30" width="240" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-2" value="Deploy (Change Set実行)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="legend">
+          <mxGeometry x="20" y="70" width="240" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Notes -->
+        <mxCell id="note-1" value="【重要な仕組み】&#xa;&#xa;✅ OIDC認証&#xa;   長期クレデンシャル不要&#xa;   セキュアな認証&#xa;&#xa;✅ パラメーターフィルタリング&#xa;   jq + get-template-summary&#xa;   必要なパラメーターのみ抽出&#xa;&#xa;✅ Change Set&#xa;   Dry-run (Preview)&#xa;   変更なしスタックは自動スキップ&#xa;&#xa;✅ Branch Protection&#xa;   1人以上の承認必須&#xa;   Status Check必須" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffcc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="360" y="800" width="320" height="240" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note-2" value="【デプロイ順序】&#xa;&#xa;Service Account:&#xa;01-network → 02-database →&#xa;03-compute → 04-auth →&#xa;05-storage → 06-monitoring&#xa;&#xa;Shared Account:&#xa;1-foundation → 2-network →&#xa;3-client-vpn&#xa;&#xa;※ Shared Account の&#xa;   Transit Gateway を先に&#xa;   デプロイする必要あり" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffcc;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="800" width="400" height="240" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
