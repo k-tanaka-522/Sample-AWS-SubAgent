@@ -92,7 +92,8 @@ if [ -z "$POLICY_ARN" ]; then
         "iam:*",
         "kms:*",
         "secretsmanager:*",
-        "cloudfront:*"
+        "cloudfront:*",
+        "ssm:*"
       ],
       "Resource": "*"
     }
