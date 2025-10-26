@@ -29,7 +29,7 @@ fi
 PROJECT_NAME="facilities"
 STACK_NAME="${PROJECT_NAME}-${ENVIRONMENT}-${STACK_TYPE}"
 TEMPLATE_FILE="stacks/${STACK_TYPE}/stack.yaml"
-PARAMETERS_FILE="parameters/${ENVIRONMENT}.json"
+PARAMETERS_FILE_ORIGINAL="parameters/${ENVIRONMENT}.json"
 
 echo "===================================="
 echo "CloudFormation Deploy (Service Account)"
@@ -37,7 +37,7 @@ echo "===================================="
 echo "Environment: ${ENVIRONMENT}"
 echo "Stack:       ${STACK_NAME}"
 echo "Template:    ${TEMPLATE_FILE}"
-echo "Parameters:  ${PARAMETERS_FILE}"
+echo "Parameters:  ${PARAMETERS_FILE_ORIGINAL}"
 echo "===================================="
 echo ""
 
@@ -50,9 +50,26 @@ aws cloudformation validate-template \
 echo "✅ Template is valid"
 echo ""
 
-# 2. Create Change Set
+# 2. Filter parameters (only those required by the template)
+echo "Step 2: Filtering parameters..."
+REQUIRED_PARAMS=$(aws cloudformation get-template-summary \
+  --template-body file://${TEMPLATE_FILE} \
+  --query 'Parameters[*].ParameterKey' \
+  --output text)
+
+FILTERED_PARAMS=$(jq --arg keys "$REQUIRED_PARAMS" '
+  [ .[] | select(.ParameterKey as $key | ($keys | split(" ") | index($key))) ]
+' ${PARAMETERS_FILE_ORIGINAL})
+
+PARAMETERS_FILE="/tmp/filtered-params-${STACK_TYPE}.json"
+echo "$FILTERED_PARAMS" > ${PARAMETERS_FILE}
+
+echo "✅ Parameters filtered ($(echo "$FILTERED_PARAMS" | jq '. | length') parameters)"
+echo ""
+
+# 3. Create Change Set
 CHANGESET_NAME="${STACK_NAME}-$(date +%Y%m%d-%H%M%S)"
-echo "Step 2: Creating Change Set: ${CHANGESET_NAME}"
+echo "Step 3: Creating Change Set: ${CHANGESET_NAME}"
 
 CHANGESET_TYPE="UPDATE"
 if ! aws cloudformation describe-stacks --stack-name ${STACK_NAME} &>/dev/null; then
@@ -76,8 +93,8 @@ aws cloudformation wait change-set-create-complete \
 echo "✅ Change Set created"
 echo ""
 
-# 3. Describe Change Set (dry-run)
-echo "Step 3: Reviewing changes (dry-run)..."
+# 4. Describe Change Set (dry-run)
+echo "Step 4: Reviewing changes (dry-run)..."
 echo "===================================="
 aws cloudformation describe-change-set \
   --stack-name ${STACK_NAME} \
@@ -89,7 +106,7 @@ echo ""
 echo "===================================="
 echo ""
 
-# 4. Dry-run mode check
+# 5. Dry-run mode check
 if [ "${DRY_RUN:-false}" = "true" ]; then
   echo "ℹ️  DRY_RUN mode enabled"
   echo "Change Set created but NOT executed"
@@ -102,7 +119,7 @@ if [ "${DRY_RUN:-false}" = "true" ]; then
   exit 0
 fi
 
-# 5. Confirmation (production only)
+# 6. Confirmation (production only)
 if [ "$ENVIRONMENT" = "prod" ]; then
   read -p "Execute Change Set on PRODUCTION? (yes/no): " CONFIRM
   if [ "$CONFIRM" != "yes" ]; then
@@ -114,8 +131,8 @@ if [ "$ENVIRONMENT" = "prod" ]; then
   fi
 fi
 
-# 6. Execute Change Set
-echo "Step 4: Executing Change Set..."
+# 7. Execute Change Set
+echo "Step 7: Executing Change Set..."
 aws cloudformation execute-change-set \
   --stack-name ${STACK_NAME} \
   --change-set-name ${CHANGESET_NAME}

@@ -60,12 +60,25 @@ jobs:
               CHANGESET_TYPE="CREATE"
             fi
 
+            # テンプレートが要求するパラメーターのみ抽出
+            REQUIRED_PARAMS=$(aws cloudformation get-template-summary \
+              --template-body file://$TEMPLATE_FILE \
+              --query 'Parameters[*].ParameterKey' \
+              --output text)
+
+            # パラメーターファイルから必要なパラメーターのみフィルタリング
+            FILTERED_PARAMS=$(jq --arg keys "$REQUIRED_PARAMS" '
+              [ .[] | select(.ParameterKey as $key | ($keys | split(" ") | index($key))) ]
+            ' $PARAMETERS_FILE)
+
+            echo "$FILTERED_PARAMS" > /tmp/filtered-params.json
+
             # Change Set 作成
             aws cloudformation create-change-set \
               --stack-name $STACK_NAME \
               --change-set-name $CHANGESET_NAME \
               --template-body file://$TEMPLATE_FILE \
-              --parameters file://$PARAMETERS_FILE \
+              --parameters file:///tmp/filtered-params.json \
               --capabilities CAPABILITY_NAMED_IAM \
               --change-set-type $CHANGESET_TYPE \
               --description "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}" \

@@ -13,7 +13,8 @@
       "Bash(bash scripts/setup-github-oidc.sh:*)",
       "Bash(bash:*)",
       "Bash(gh secret:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(gh pr create:*)"
     ],
     "deny": [],
     "ask": []
