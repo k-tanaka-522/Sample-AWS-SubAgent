@@ -89,7 +89,20 @@ echo ""
 echo "===================================="
 echo ""
 
-# 4. Confirmation (production only)
+# 4. Dry-run mode check
+if [ "${DRY_RUN:-false}" = "true" ]; then
+  echo "ℹ️  DRY_RUN mode enabled"
+  echo "Change Set created but NOT executed"
+  echo ""
+  echo "To execute this Change Set manually:"
+  echo "  aws cloudformation execute-change-set \\"
+  echo "    --stack-name ${STACK_NAME} \\"
+  echo "    --change-set-name ${CHANGESET_NAME}"
+  echo ""
+  exit 0
+fi
+
+# 5. Confirmation (production only)
 if [ "$ENVIRONMENT" = "prod" ]; then
   read -p "Execute Change Set on PRODUCTION? (yes/no): " CONFIRM
   if [ "$CONFIRM" != "yes" ]; then
@@ -101,7 +114,7 @@ if [ "$ENVIRONMENT" = "prod" ]; then
   fi
 fi
 
-# 5. Execute Change Set
+# 6. Execute Change Set
 echo "Step 4: Executing Change Set..."
 aws cloudformation execute-change-set \
   --stack-name ${STACK_NAME} \
