@@ -21,7 +21,7 @@
   },
   {
     "ParameterKey": "TransitGatewayId",
-    "ParameterValue": "tgw-XXXXXXXXXXXX"
+    "ParameterValue": "tgw-0123456789abcdef0"
   },
   {
     "ParameterKey": "DBInstanceClass",
@@ -81,7 +81,7 @@
   },
   {
     "ParameterKey": "ECRRepositoryUri",
-    "ParameterValue": "123456789012.dkr.ecr.ap-northeast-1.amazonaws.com/facilities"
+    "ParameterValue": "897167645238.dkr.ecr.ap-northeast-1.amazonaws.com/facilities"
   },
   {
     "ParameterKey": "AlertEmail",
@@ -89,6 +89,6 @@
   },
   {
     "ParameterKey": "TemplateBucketName",
-    "ParameterValue": "facilities-cloudformation-templates"
+    "ParameterValue": "facilities-cfn-templates-897167645238"
   }
 ]
