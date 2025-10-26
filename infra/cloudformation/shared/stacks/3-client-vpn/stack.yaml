@@ -119,7 +119,7 @@ Resources:
       TemplateURL: !If
         - UseS3Templates
         - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/client-vpn-vpc.yaml
-        - nested/client-vpn-vpc.yaml
+        - templates/client-vpn/client-vpn-vpc.yaml
       Tags:
         - Key: Name
           Value: facilities-shared-client-vpn-vpc-stack
@@ -138,7 +138,7 @@ Resources:
       TemplateURL: !If
         - UseS3Templates
         - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/server-certificate.yaml
-        - nested/server-certificate.yaml
+        - templates/client-vpn/server-certificate.yaml
       Tags:
         - Key: Name
           Value: facilities-shared-client-vpn-cert-stack
@@ -159,7 +159,7 @@ Resources:
       TemplateURL: !If
         - UseS3Templates
         - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/client-vpn-endpoint.yaml
-        - nested/client-vpn-endpoint.yaml
+        - templates/client-vpn/client-vpn-endpoint.yaml
       Parameters:
         ClientCidrBlock: !Ref ClientCidrBlock
         ServerCertificateArn: !If
@@ -193,7 +193,7 @@ Resources:
       TemplateURL: !If
         - UseS3Templates
         - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/transit-gateway-attachment.yaml
-        - nested/transit-gateway-attachment.yaml
+        - templates/client-vpn/transit-gateway-attachment.yaml
       Parameters:
         ClientVpnEndpointId: !GetAtt ClientVpnEndpointStack.Outputs.ClientVpnEndpointId
         TransitGatewayId: !Ref TransitGatewayId

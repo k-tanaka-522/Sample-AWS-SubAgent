@@ -16,7 +16,7 @@
 ├── stack.yaml                          # マスタースタック（Nested Stacks統合）
 ├── parameters/
 │   └── prod.json                       # パラメーターファイル
-├── nested/
+├── templates/network/
 │   ├── transit-gateway.yaml            # Transit Gateway
 │   ├── transit-gateway-route-tables.yaml # TGW Route Tables
 │   ├── direct-connect-gateway.yaml     # Direct Connect Gateway

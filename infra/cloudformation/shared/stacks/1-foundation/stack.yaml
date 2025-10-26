@@ -36,7 +36,7 @@ Resources:
   AuditLogsBucket:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/nested/s3-audit-logs.yaml'
+      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/templates/foundation/s3-audit-logs.yaml'
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -53,7 +53,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: AuditLogsBucket
     Properties:
-      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/nested/cloudtrail-org.yaml'
+      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/templates/foundation/cloudtrail-org.yaml'
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -71,7 +71,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: AuditLogsBucket
     Properties:
-      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/nested/config-org.yaml'
+      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/templates/foundation/config-org.yaml'
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -88,7 +88,7 @@ Resources:
   GuardDutyOrg:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/nested/guardduty-org.yaml'
+      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/templates/foundation/guardduty-org.yaml'
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment
@@ -105,7 +105,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: GuardDutyOrg
     Properties:
-      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/nested/security-hub-org.yaml'
+      TemplateURL: !Sub 'https://s3.${AWS::Region}.amazonaws.com/${TemplatesBucket}/templates/foundation/security-hub-org.yaml'
       Parameters:
         ProjectName: !Ref ProjectName
         Environment: !Ref Environment

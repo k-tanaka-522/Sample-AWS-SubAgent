@@ -33,23 +33,26 @@ Shared Account
 ## ディレクトリ構成
 
 ```
-1-foundation/
-├── README.md                          # このファイル
-├── stack.yaml                         # マスタースタック（Nested Stacks統合）
-├── parameters/
-│   └── prod.json                      # パラメーターファイル
-├── nested/
-│   ├── s3-audit-logs.yaml             # S3 監査ログバケット
-│   ├── cloudtrail-org.yaml            # CloudTrail（組織全体）
-│   ├── config-org.yaml                # Config（組織全体）
-│   ├── guardduty-org.yaml             # GuardDuty（組織全体）
-│   └── security-hub-org.yaml          # Security Hub（組織全体）
-└── scripts/
-    ├── create-changeset.sh            # Change Set 作成
-    ├── describe-changeset.sh          # Change Set 確認
-    ├── execute-changeset.sh           # Change Set 実行
-    ├── rollback.sh                    # ロールバック
-    └── validate.sh                    # テンプレート検証
+shared/
+├── stacks/
+│   └── 1-foundation/
+│       ├── README.md                  # このファイル
+│       ├── stack.yaml                 # 親スタック（Nested Stacks統合）
+│       ├── parameters/
+│       │   └── prod.json              # パラメーターファイル
+│       └── scripts/
+│           ├── create-changeset.sh    # Change Set 作成
+│           ├── describe-changeset.sh  # Change Set 確認
+│           ├── execute-changeset.sh   # Change Set 実行
+│           ├── rollback.sh            # ロールバック
+│           └── validate.sh            # テンプレート検証
+└── templates/
+    └── foundation/
+        ├── s3-audit-logs.yaml         # S3 監査ログバケット
+        ├── cloudtrail-org.yaml        # CloudTrail（組織全体）
+        ├── config-org.yaml            # Config（組織全体）
+        ├── guardduty-org.yaml         # GuardDuty（組織全体）
+        └── security-hub-org.yaml      # Security Hub（組織全体）
 ```
 
 ---
@@ -242,7 +245,7 @@ aws cloudformation describe-stacks \
 
 **原因**: S3 Bucket Policy が正しく設定されていない
 
-**対処**: `nested/s3-audit-logs.yaml` の Bucket Policy を確認
+**対処**: `templates/foundation/s3-audit-logs.yaml` の Bucket Policy を確認
 
 ---
 

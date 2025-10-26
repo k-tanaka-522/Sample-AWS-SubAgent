@@ -38,7 +38,7 @@ Client VPN Endpoint は Transit Gateway に直接接続できません。その�
 ```
 3-client-vpn/
 ├── stack.yaml                               # 親スタック
-└── nested/
+└── templates/network/
     ├── client-vpn-vpc.yaml                  # Client VPN 用 VPC（10.255.0.0/16）
     ├── server-certificate.yaml              # サーバー証明書（手動作成手順）
     ├── client-vpn-endpoint.yaml             # Client VPN Endpoint

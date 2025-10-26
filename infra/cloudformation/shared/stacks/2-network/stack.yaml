@@ -109,7 +109,7 @@ Resources:
       TemplateURL: !If
         - UseS3Templates
         - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/transit-gateway.yaml
-        - nested/transit-gateway.yaml
+        - templates/network/transit-gateway.yaml
       Parameters:
         AmazonSideAsn: !Ref AmazonSideAsn
       Tags:
@@ -130,7 +130,7 @@ Resources:
       TemplateURL: !If
         - UseS3Templates
         - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/transit-gateway-route-tables.yaml
-        - nested/transit-gateway-route-tables.yaml
+        - templates/network/transit-gateway-route-tables.yaml
       Parameters:
         TransitGatewayId: !GetAtt TransitGatewayStack.Outputs.TransitGatewayId
       Tags:
@@ -151,7 +151,7 @@ Resources:
       TemplateURL: !If
         - UseS3Templates
         - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/direct-connect-gateway.yaml
-        - nested/direct-connect-gateway.yaml
+        - templates/network/direct-connect-gateway.yaml
       Parameters:
         TransitGatewayId: !GetAtt TransitGatewayStack.Outputs.TransitGatewayId
         DirectConnectGatewayId: !Ref DirectConnectGatewayId
@@ -174,7 +174,7 @@ Resources:
       TemplateURL: !If
         - UseS3Templates
         - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/transit-vif.yaml
-        - nested/transit-vif.yaml
+        - templates/network/transit-vif.yaml
       Parameters:
         DirectConnectGatewayId: !GetAtt DirectConnectGatewayStack.Outputs.DirectConnectGatewayId
         DirectConnectConnectionId: !Ref DirectConnectConnectionId
@@ -199,7 +199,7 @@ Resources:
       TemplateURL: !If
         - UseS3Templates
         - !Sub https://${TemplateS3Bucket}.s3.${AWS::Region}.amazonaws.com/${TemplateS3Prefix}/ram-share.yaml
-        - nested/ram-share.yaml
+        - templates/network/ram-share.yaml
       Parameters:
         TransitGatewayId: !GetAtt TransitGatewayStack.Outputs.TransitGatewayId
         ServiceAccountId: !Ref ServiceAccountId
