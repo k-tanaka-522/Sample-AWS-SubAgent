@@ -64,14 +64,19 @@ jobs:
             REQUIRED_PARAMS=$(aws cloudformation get-template-summary \
               --template-body file://$TEMPLATE_FILE \
               --query 'Parameters[*].ParameterKey' \
-              --output text)
+              --output json)
 
             # パラメーターファイルから必要なパラメーターのみフィルタリング
-            FILTERED_PARAMS=$(jq --arg keys "$REQUIRED_PARAMS" '
-              [ .[] | select(.ParameterKey as $key | ($keys | split(" ") | index($key))) ]
+            FILTERED_PARAMS=$(jq --argjson required "$REQUIRED_PARAMS" '
+              [ .[] | select(.ParameterKey as $k | $required | index($k)) ]
             ' $PARAMETERS_FILE)
 
             echo "$FILTERED_PARAMS" > /tmp/filtered-params.json
+
+            # デバッグ: フィルタ結果を表示
+            echo "Required parameters: $REQUIRED_PARAMS"
+            echo "Filtered parameters:"
+            cat /tmp/filtered-params.json
 
             # Change Set 作成
             aws cloudformation create-change-set \

@@ -55,16 +55,17 @@ echo "Step 2: Filtering parameters..."
 REQUIRED_PARAMS=$(aws cloudformation get-template-summary \
   --template-body file://${TEMPLATE_FILE} \
   --query 'Parameters[*].ParameterKey' \
-  --output text)
+  --output json)
 
-FILTERED_PARAMS=$(jq --arg keys "$REQUIRED_PARAMS" '
-  [ .[] | select(.ParameterKey as $key | ($keys | split(" ") | index($key))) ]
+FILTERED_PARAMS=$(jq --argjson required "$REQUIRED_PARAMS" '
+  [ .[] | select(.ParameterKey as $k | $required | index($k)) ]
 ' ${PARAMETERS_FILE_ORIGINAL})
 
 PARAMETERS_FILE="/tmp/filtered-params-${STACK_TYPE}.json"
 echo "$FILTERED_PARAMS" > ${PARAMETERS_FILE}
 
-echo "✅ Parameters filtered ($(echo "$FILTERED_PARAMS" | jq '. | length') parameters)"
+PARAM_COUNT=$(echo "$FILTERED_PARAMS" | jq '. | length')
+echo "✅ Parameters filtered (${PARAM_COUNT} parameters)"
 echo ""
 
 # 3. Create Change Set
