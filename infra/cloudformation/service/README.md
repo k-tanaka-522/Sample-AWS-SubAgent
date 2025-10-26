@@ -259,4 +259,11 @@ aws s3 sync service/ s3://facilities-cloudformation-templates/service/
 ---
 
 **作成者**: SRE エージェント
-**最終更新**: 2025-10-25
+**最終更新**: 2025-10-26
+
+---
+
+## CICD Status
+
+✅ GitHub Actions configured
+✅ OIDC authentication enabled

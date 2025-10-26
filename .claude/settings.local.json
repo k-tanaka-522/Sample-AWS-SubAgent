@@ -7,7 +7,13 @@
       "Bash(git push:*)",
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(gh repo view:*)",
+      "Bash(aws sts get-caller-identity:*)",
+      "Bash(bash scripts/setup-github-oidc.sh:*)",
+      "Bash(bash:*)",
+      "Bash(gh secret:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
