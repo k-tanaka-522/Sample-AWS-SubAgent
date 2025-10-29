@@ -1,0 +1,817 @@
+<mxfile host="app.diagrams.net" modified="2025-10-29T00:00:00.000Z" agent="Claude Code" etag="v1.3" version="22.0.0" type="device" pages="4">
+
+  <!-- ============================================================ -->
+  <!-- タブ1: 全体俯瞰図 -->
+  <!-- ============================================================ -->
+  <diagram id="tab1-overview" name="全体俯瞰図">
+    <mxGraphModel dx="2400" dy="2000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- 拠点（上部） -->
+        <mxCell id="location" value="拠点（20拠点）&#xa;各拠点100台の端末&#xa;合計2,000台" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e6;strokeColor=#ff9800;strokeWidth=3;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="100" y="50" width="300" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Shared Account（中央） -->
+        <mxCell id="shared-account" value="Shared Account（共有基盤）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f3ff;strokeColor=#2196F3;strokeWidth=3;verticalAlign=top;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="200" width="600" height="700" as="geometry" />
+        </mxCell>
+
+        <!-- Direct Connect セクション -->
+        <mxCell id="dx-section" value="Direct Connect（prod/stg 共有）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#ff6600;strokeWidth=3;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="230" width="260" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dx-conn" value="Direct Connect&#xa;100Mbps&#xa;Hosted Connection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ff6600;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="100" y="260" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dx-gw" value="Direct Connect&#xa;Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ff6600;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="220" y="260" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dx-vif" value="Transit VIF&#xa;(プライベート)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ff6600;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="150" y="330" width="100" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Client VPN セクション -->
+        <mxCell id="vpn-section" value="Client VPN（dev 専用）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f7ff;strokeColor=#0066FF;strokeWidth=3;strokeDashArray=5 5;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="360" y="230" width="260" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="vpn-endpoint" value="Client VPN&#xa;Endpoint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#0066FF;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="380" y="260" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="vpn-note" value="コスト削減のため" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#0066FF" vertex="1" parent="1">
+          <mxGeometry x="380" y="330" width="120" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Transit Gateway セクション -->
+        <mxCell id="tgw-section" value="Transit Gateway（すべての環境のハブ）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#FFC107;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="400" width="540" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tgw" value="TGW&#xa;ネットワークハブ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#FFC107;strokeWidth=1;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="250" y="430" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 監査・セキュリティ セクション -->
+        <mxCell id="audit-section" value="監査・セキュリティ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e5f5;strokeColor=#9C27B0;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="520" width="260" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudtrail" value="CloudTrail&#xa;(組織全体)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9C27B0;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="100" y="550" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="config" value="Config&#xa;(組織全体)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9C27B0;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="220" y="550" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="guardduty" value="GuardDuty&#xa;(組織全体)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9C27B0;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="100" y="600" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="securityhub" value="Security Hub&#xa;(組織全体)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9C27B0;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="220" y="600" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-audit" value="S3（監査ログ集約）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9C27B0;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="100" y="650" width="220" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- AWS Organizations セクション -->
+        <mxCell id="org-section" value="AWS Organizations" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#4CAF50;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="360" y="520" width="260" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="org" value="Organizations&#xa;(管理アカウント)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#4CAF50;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="380" y="570" width="220" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Service Account (dev) -->
+        <mxCell id="service-dev" value="Service Account (dev)&#xa;開発環境専用アカウント" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#4CAF50;strokeWidth=3;strokeDashArray=5 5;verticalAlign=top;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="700" y="200" width="650" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="vpc-dev" value="VPC (10.0.0.0/16)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2196F3;strokeWidth=2;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="240" width="610" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="tgw-att-dev" value="TGW&#xa;Attachment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2196F3;strokeWidth=1;fontSize=8" vertex="1" parent="1">
+          <mxGeometry x="740" y="260" width="70" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="public-dev" value="Public Subnet&#xa;ALB(内部/外部)&#xa;NAT GW" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#cc0000;strokeWidth=1;fontSize=8" vertex="1" parent="1">
+          <mxGeometry x="820" y="260" width="130" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="private-dev" value="Private Subnet&#xa;ECS(業務/事業者/バッチ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#00cc00;strokeWidth=1;fontSize=8" vertex="1" parent="1">
+          <mxGeometry x="960" y="260" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="db-dev" value="DB Subnet&#xa;RDS PostgreSQL&#xa;(シングルAZ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e6;strokeColor=#ff9900;strokeWidth=1;fontSize=8" vertex="1" parent="1">
+          <mxGeometry x="1130" y="260" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="note-dev" value="Client VPN 経由（コスト削減）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fontColor=#0066FF" vertex="1" parent="1">
+          <mxGeometry x="720" y="320" width="180" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Service Account (stg) -->
+        <mxCell id="service-stg" value="Service Account (stg)&#xa;ステージング環境専用アカウント" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#ff9800;strokeWidth=3;verticalAlign=top;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="700" y="430" width="650" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="vpc-stg" value="VPC (10.1.0.0/16)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2196F3;strokeWidth=2;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="470" width="610" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="tgw-att-stg" value="TGW&#xa;Attachment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2196F3;strokeWidth=1;fontSize=8" vertex="1" parent="1">
+          <mxGeometry x="740" y="490" width="70" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="public-stg" value="Public Subnet&#xa;ALB(内部/外部)&#xa;NAT GW(2AZ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#cc0000;strokeWidth=1;fontSize=8" vertex="1" parent="1">
+          <mxGeometry x="820" y="490" width="130" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="private-stg" value="Private Subnet&#xa;ECS(業務/事業者/バッチ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#00cc00;strokeWidth=1;fontSize=8" vertex="1" parent="1">
+          <mxGeometry x="960" y="490" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="db-stg" value="DB Subnet&#xa;RDS PostgreSQL&#xa;(マルチAZ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e6;strokeColor=#ff9900;strokeWidth=1;fontSize=8" vertex="1" parent="1">
+          <mxGeometry x="1130" y="490" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="note-stg" value="Direct Connect 経由（本番共有）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fontColor=#ff6600" vertex="1" parent="1">
+          <mxGeometry x="720" y="550" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Service Account (prod) -->
+        <mxCell id="service-prod" value="Service Account (prod)&#xa;本番環境専用アカウント" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#F44336;strokeWidth=3;verticalAlign=top;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="700" y="660" width="650" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="vpc-prod" value="VPC (10.2.0.0/16)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2196F3;strokeWidth=2;verticalAlign=top;fontSize=11;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="720" y="700" width="610" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="tgw-att-prod" value="TGW&#xa;Attachment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2196F3;strokeWidth=1;fontSize=8" vertex="1" parent="1">
+          <mxGeometry x="740" y="720" width="70" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="public-prod" value="Public Subnet&#xa;ALB(内部/外部)&#xa;NAT GW(2AZ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#cc0000;strokeWidth=1;fontSize=8" vertex="1" parent="1">
+          <mxGeometry x="820" y="720" width="130" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="private-prod" value="Private Subnet&#xa;ECS(業務/事業者/バッチ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#00cc00;strokeWidth=1;fontSize=8" vertex="1" parent="1">
+          <mxGeometry x="960" y="720" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="db-prod" value="DB Subnet&#xa;RDS PostgreSQL&#xa;(マルチAZ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e6;strokeColor=#ff9900;strokeWidth=1;fontSize=8" vertex="1" parent="1">
+          <mxGeometry x="1130" y="720" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="note-prod" value="Direct Connect 経由（本番運用）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fontColor=#ff6600" vertex="1" parent="1">
+          <mxGeometry x="720" y="780" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- データフロー -->
+        <!-- 拠点 → Direct Connect -->
+        <mxCell id="flow-loc-dx" value="BGP" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=4;fontSize=9" edge="1" parent="1" source="location" target="dx-conn">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="150" as="sourcePoint" />
+            <mxPoint x="150" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 拠点 → Client VPN -->
+        <mxCell id="flow-loc-vpn" value="VPN接続" style="endArrow=classic;html=1;strokeColor=#0066FF;strokeWidth=4;strokeDashArray=5 5;fontSize=9" edge="1" parent="1" source="location" target="vpn-endpoint">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="150" as="sourcePoint" />
+            <mxPoint x="440" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Direct Connect → Transit Gateway -->
+        <mxCell id="flow-dx-tgw" value="" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=3" edge="1" parent="1" source="dx-vif" target="tgw">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="200" y="370" as="sourcePoint" />
+            <mxPoint x="350" y="430" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Client VPN → Transit Gateway -->
+        <mxCell id="flow-vpn-tgw" value="" style="endArrow=classic;html=1;strokeColor=#0066FF;strokeWidth=3;strokeDashArray=5 5" edge="1" parent="1" source="vpn-endpoint" target="tgw">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="440" y="320" as="sourcePoint" />
+            <mxPoint x="350" y="430" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Transit Gateway → dev (Client VPN) -->
+        <mxCell id="flow-tgw-dev" value="Client VPN経由" style="endArrow=classic;html=1;strokeColor=#0066FF;strokeWidth=4;strokeDashArray=5 5;fontSize=8" edge="1" parent="1" source="tgw" target="tgw-att-dev">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="450" y="455" as="sourcePoint" />
+            <mxPoint x="740" y="277" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Transit Gateway → stg (Direct Connect) -->
+        <mxCell id="flow-tgw-stg" value="Direct Connect経由" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=4;fontSize=8" edge="1" parent="1" source="tgw" target="tgw-att-stg">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="450" y="455" as="sourcePoint" />
+            <mxPoint x="740" y="507" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Transit Gateway → prod (Direct Connect) -->
+        <mxCell id="flow-tgw-prod" value="Direct Connect経由" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=4;fontSize=8" edge="1" parent="1" source="tgw" target="tgw-att-prod">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="450" y="480" as="sourcePoint" />
+            <mxPoint x="740" y="737" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- インターネット（左下） -->
+        <mxCell id="internet" value="インターネット&#xa;事業者&#xa;(パブリック)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#00cc00;strokeWidth=2;fontSize=12;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="50" y="950" width="200" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- インターネット → dev -->
+        <mxCell id="flow-inet-dev" value="HTTPS" style="endArrow=classic;html=1;strokeColor=#00cc00;strokeWidth=3;fontSize=9" edge="1" parent="1" source="internet" target="public-dev">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="1000" as="sourcePoint" />
+            <mxPoint x="885" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- インターネット → stg -->
+        <mxCell id="flow-inet-stg" value="HTTPS" style="endArrow=classic;html=1;strokeColor=#00cc00;strokeWidth=3;fontSize=9" edge="1" parent="1" source="internet" target="public-stg">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="1000" as="sourcePoint" />
+            <mxPoint x="885" y="590" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- インターネット → prod -->
+        <mxCell id="flow-inet-prod" value="HTTPS" style="endArrow=classic;html=1;strokeColor=#00cc00;strokeWidth=3;fontSize=9" edge="1" parent="1" source="internet" target="public-prod">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="1000" as="sourcePoint" />
+            <mxPoint x="885" y="820" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 監査フロー -->
+        <mxCell id="flow-audit-dev" value="監査ログ" style="endArrow=classic;html=1;strokeColor=#9C27B0;strokeWidth=1;strokeDashArray=5 5;fontSize=8" edge="1" parent="1" source="cloudtrail" target="vpc-dev">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="200" y="570" as="sourcePoint" />
+            <mxPoint x="720" y="310" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-audit-stg" value="監査ログ" style="endArrow=classic;html=1;strokeColor=#9C27B0;strokeWidth=1;strokeDashArray=5 5;fontSize=8" edge="1" parent="1" source="config" target="vpc-stg">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="320" y="570" as="sourcePoint" />
+            <mxPoint x="720" y="540" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-audit-prod" value="監査ログ" style="endArrow=classic;html=1;strokeColor=#9C27B0;strokeWidth=1;strokeDashArray=5 5;fontSize=8" edge="1" parent="1" source="guardduty" target="vpc-prod">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="200" y="620" as="sourcePoint" />
+            <mxPoint x="720" y="770" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Organizations 管理 -->
+        <mxCell id="flow-org-dev" value="管理" style="endArrow=classic;html=1;strokeColor=#4CAF50;strokeWidth=1;strokeDashArray=5 5;fontSize=8" edge="1" parent="1" source="org" target="service-dev">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="600" y="620" as="sourcePoint" />
+            <mxPoint x="700" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-org-stg" value="管理" style="endArrow=classic;html=1;strokeColor=#4CAF50;strokeWidth=1;strokeDashArray=5 5;fontSize=8" edge="1" parent="1" source="org" target="service-stg">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="600" y="620" as="sourcePoint" />
+            <mxPoint x="700" y="530" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-org-prod" value="管理" style="endArrow=classic;html=1;strokeColor=#4CAF50;strokeWidth=1;strokeDashArray=5 5;fontSize=8" edge="1" parent="1" source="org" target="service-prod">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="600" y="670" as="sourcePoint" />
+            <mxPoint x="700" y="760" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 凡例 -->
+        <mxCell id="legend" value="【凡例】&#xa;━━━ Direct Connect (prod/stg): 実線・太線・オレンジ&#xa;- - - Client VPN (dev): 点線・太線・青&#xa;━━━ インターネット: 緑&#xa;- - - 監査フロー: 紫の点線&#xa;&#xa;■ Shared Account: 青系&#xa;■ Service Account (dev): 緑系&#xa;■ Service Account (stg): オレンジ系&#xa;■ Service Account (prod): 赤系" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;verticalAlign=top;fontSize=9;fontStyle=0;align=left;" vertex="1" parent="1">
+          <mxGeometry x="700" y="900" width="650" height="150" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ============================================================ -->
+  <!-- タブ2: dev環境 詳細図 -->
+  <!-- ============================================================ -->
+  <diagram id="tab2-dev-detail" name="dev環境 詳細図">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- タイトル -->
+        <mxCell id="title" value="Service Account (dev) - 開発環境 詳細構成図" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=18;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="20" width="1300" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 拠点（左上） -->
+        <mxCell id="location-dev" value="拠点（20拠点）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e6;strokeColor=#ff9800;strokeWidth=2;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="80" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Client VPN -->
+        <mxCell id="vpn-dev" value="Client VPN Endpoint&#xa;(Shared Account)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6f7ff;strokeColor=#0066FF;strokeWidth=2;strokeDashArray=5 5;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="250" y="80" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Transit Gateway -->
+        <mxCell id="tgw-dev" value="Transit Gateway&#xa;(Shared Account)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#FFC107;strokeWidth=2;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="450" y="80" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- VPC (dev) -->
+        <mxCell id="vpc-detail-dev" value="VPC (10.0.0.0/16)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2196F3;strokeWidth=3;verticalAlign=top;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="200" width="1300" height="700" as="geometry" />
+        </mxCell>
+
+        <!-- Transit Gateway Attachment -->
+        <mxCell id="tgw-att-detail-dev" value="Transit Gateway Attachment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cce6ff;strokeColor=#0066cc;strokeWidth=2;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Public Subnet -->
+        <mxCell id="public-detail-dev" value="Public Subnet (10.0.0.0/24) - AZ-a" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#cc0000;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="350" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="igw-detail-dev" value="Internet Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cc0000;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="100" y="350" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="alb-internal-detail-dev" value="ALB (Internal)&#xa;業務アプリ用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cc0000;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="100" y="400" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="alb-public-detail-dev" value="ALB (Public)&#xa;事業者アプリ用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cc0000;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="100" y="460" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="nat-detail-dev" value="NAT Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cc0000;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="100" y="520" width="150" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Private Subnet -->
+        <mxCell id="private-detail-dev" value="Private Subnet (10.0.2.0/24) - AZ-a" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#00cc00;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="480" y="320" width="400" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs-business-detail-dev" value="ECS Fargate&#xa;業務API&#xa;(0.5vCPU / 1GB)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#00cc00;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="500" y="350" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs-provider-detail-dev" value="ECS Fargate&#xa;事業者API&#xa;(0.5vCPU / 1GB)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#00cc00;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="500" y="410" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs-batch-detail-dev" value="ECS Fargate&#xa;バッチ&#xa;(0.5vCPU / 1GB)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#00cc00;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="500" y="470" width="180" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="note-private-dev" value="タスク数: 最小1、最大2" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="500" y="530" width="180" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- DB Subnet -->
+        <mxCell id="db-detail-dev" value="DB Subnet (10.0.4.0/24) - AZ-a" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e6;strokeColor=#ff9900;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="930" y="320" width="400" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="rds-detail-dev" value="RDS PostgreSQL&#xa;(シングルAZ)&#xa;db.t4g.micro&#xa;20GB GP2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ff9900;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="950" y="380" width="360" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="note-db-dev" value="⚠️ シングルAZ構成（コスト削減）&#xa;本番移行時はマルチAZを推奨" style="text;html=1;strokeColor=none;fillColor=#ffffcc;align=center;verticalAlign=middle;fontSize=9;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="950" y="500" width="360" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 共通サービス -->
+        <mxCell id="common-dev" value="共通サービス（全環境共通）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="620" width="1250" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="cognito-staff-detail" value="Cognito&#xa;ユーザープール&#xa;(職員用)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="100" y="650" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cognito-provider-detail" value="Cognito&#xa;ユーザープール&#xa;(事業者用)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="270" y="650" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="secrets-detail" value="Secrets Manager&#xa;(DB接続情報)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="440" y="650" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ecr-detail" value="ECR&#xa;(コンテナレジストリ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="610" y="650" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudwatch-logs-detail" value="CloudWatch Logs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="780" y="650" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-logs-detail" value="S3 Bucket&#xa;(ログ保管)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="950" y="650" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudwatch-alarms-detail" value="CloudWatch Alarms" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="1120" y="650" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="sns-detail" value="SNS&#xa;(通知)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="100" y="730" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudfront-detail" value="CloudFront&#xa;(フロントエンド配信)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="270" y="730" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-frontend-detail" value="S3 Bucket&#xa;(フロントエンド)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="440" y="730" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- データフロー -->
+        <!-- 拠点 → Client VPN → Transit Gateway → TGW Attachment -->
+        <mxCell id="flow-loc-vpn-dev" value="Client VPN接続" style="endArrow=classic;html=1;strokeColor=#0066FF;strokeWidth=4;strokeDashArray=5 5;fontSize=9" edge="1" parent="1" source="location-dev" target="vpn-dev">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="200" y="110" as="sourcePoint" />
+            <mxPoint x="250" y="110" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-vpn-tgw-dev" value="" style="endArrow=classic;html=1;strokeColor=#0066FF;strokeWidth=4;strokeDashArray=5 5" edge="1" parent="1" source="vpn-dev" target="tgw-dev">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="110" as="sourcePoint" />
+            <mxPoint x="450" y="110" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-tgw-att-dev" value="" style="endArrow=classic;html=1;strokeColor=#0066FF;strokeWidth=4;strokeDashArray=5 5" edge="1" parent="1" source="tgw-dev" target="tgw-att-detail-dev">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="525" y="140" as="sourcePoint" />
+            <mxPoint x="170" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- TGW Attachment → ALB Internal -->
+        <mxCell id="flow-att-alb-dev" value="" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=3" edge="1" parent="1" source="tgw-att-detail-dev" target="alb-internal-detail-dev">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="170" y="290" as="sourcePoint" />
+            <mxPoint x="175" y="400" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ALB Internal → ECS Business -->
+        <mxCell id="flow-alb-ecs-dev" value="" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=3" edge="1" parent="1" source="alb-internal-detail-dev" target="ecs-business-detail-dev">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="425" as="sourcePoint" />
+            <mxPoint x="500" y="375" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- インターネット → ALB Public -->
+        <mxCell id="inet-alb-pub-dev" value="HTTPS（事業者）" style="endArrow=classic;html=1;strokeColor=#00cc00;strokeWidth=3;fontSize=9" edge="1" parent="1" target="alb-public-detail-dev">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="30" y="485" as="sourcePoint" />
+            <mxPoint x="100" y="485" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ALB Public → ECS Provider -->
+        <mxCell id="flow-alb-pub-ecs-dev" value="" style="endArrow=classic;html=1;strokeColor=#00cc00;strokeWidth=3" edge="1" parent="1" source="alb-public-detail-dev" target="ecs-provider-detail-dev">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="485" as="sourcePoint" />
+            <mxPoint x="500" y="435" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ECS → RDS -->
+        <mxCell id="flow-ecs-rds-dev" value="DB接続" style="endArrow=classic;html=1;strokeColor=#ff9900;strokeWidth=3;fontSize=9" edge="1" parent="1" source="ecs-business-detail-dev" target="rds-detail-dev">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="680" y="375" as="sourcePoint" />
+            <mxPoint x="950" y="430" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ECS → Cognito/Secrets/CloudWatch（点線） -->
+        <mxCell id="flow-ecs-cognito-dev" value="認証" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=1;strokeDashArray=5 5;fontSize=8" edge="1" parent="1" source="ecs-business-detail-dev" target="cognito-staff-detail">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="590" y="400" as="sourcePoint" />
+            <mxPoint x="175" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-ecs-secrets-dev" value="シークレット取得" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=1;strokeDashArray=5 5;fontSize=8" edge="1" parent="1" source="ecs-business-detail-dev" target="secrets-detail">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="590" y="400" as="sourcePoint" />
+            <mxPoint x="515" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-ecs-logs-dev" value="ログ送信" style="endArrow=classic;html=1;strokeColor=#666666;strokeWidth=1;strokeDashArray=5 5;fontSize=8" edge="1" parent="1" source="ecs-business-detail-dev" target="cloudwatch-logs-detail">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="680" y="375" as="sourcePoint" />
+            <mxPoint x="855" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ============================================================ -->
+  <!-- タブ3: stg環境 詳細図 -->
+  <!-- ============================================================ -->
+  <diagram id="tab3-stg-detail" name="stg環境 詳細図">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- タイトル -->
+        <mxCell id="title-stg" value="Service Account (stg) - ステージング環境 詳細構成図" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=18;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="20" width="1300" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 拠点（左上） -->
+        <mxCell id="location-stg" value="拠点（20拠点）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e6;strokeColor=#ff9800;strokeWidth=2;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="80" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Direct Connect -->
+        <mxCell id="dx-stg" value="Direct Connect&#xa;(Shared Account)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#ff6600;strokeWidth=2;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="250" y="80" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Transit Gateway -->
+        <mxCell id="tgw-stg" value="Transit Gateway&#xa;(Shared Account)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#FFC107;strokeWidth=2;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="450" y="80" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- VPC (stg) -->
+        <mxCell id="vpc-detail-stg" value="VPC (10.1.0.0/16)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2196F3;strokeWidth=3;verticalAlign=top;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="200" width="1300" height="700" as="geometry" />
+        </mxCell>
+
+        <!-- Transit Gateway Attachment -->
+        <mxCell id="tgw-att-detail-stg" value="Transit Gateway Attachment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cce6ff;strokeColor=#0066cc;strokeWidth=2;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Public Subnet (2AZ) -->
+        <mxCell id="public-detail-stg" value="Public Subnet (10.1.0.0/24, 10.1.1.0/24) - AZ-a, AZ-c" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#cc0000;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="350" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="igw-detail-stg" value="Internet Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cc0000;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="100" y="350" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="alb-internal-detail-stg" value="ALB (Internal)&#xa;業務アプリ用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cc0000;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="100" y="400" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="alb-public-detail-stg" value="ALB (Public)&#xa;事業者アプリ用" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cc0000;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="100" y="460" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="nat-a-detail-stg" value="NAT Gateway&#xa;(AZ-a)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cc0000;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="100" y="520" width="70" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nat-c-detail-stg" value="NAT Gateway&#xa;(AZ-c)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cc0000;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="180" y="520" width="70" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="note-nat-stg" value="マルチAZ構成" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="100" y="570" width="150" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Private Subnet (2AZ) -->
+        <mxCell id="private-detail-stg" value="Private Subnet (10.1.2.0/24, 10.1.3.0/24) - AZ-a, AZ-c" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#00cc00;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="480" y="320" width="400" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs-business-detail-stg" value="ECS Fargate&#xa;業務API&#xa;(0.5vCPU / 1GB)&#xa;タスク数: 最小1、最大4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#00cc00;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="500" y="350" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs-provider-detail-stg" value="ECS Fargate&#xa;事業者API&#xa;(0.5vCPU / 1GB)&#xa;タスク数: 最小1、最大4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#00cc00;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="500" y="420" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs-batch-detail-stg" value="ECS Fargate&#xa;バッチ&#xa;(2vCPU / 4GB)&#xa;タスク数: 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#00cc00;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="500" y="490" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="note-private-stg" value="マルチAZ配置（自動フェイルオーバー）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="500" y="560" width="230" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- DB Subnet (2AZ) -->
+        <mxCell id="db-detail-stg" value="DB Subnet (10.1.4.0/24, 10.1.5.0/24) - AZ-a, AZ-c" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e6;strokeColor=#ff9900;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="930" y="320" width="400" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="rds-detail-stg" value="RDS PostgreSQL&#xa;(マルチAZ)&#xa;db.t4g.small&#xa;50GB GP2&#xa;&#xa;プライマリ: AZ-a&#xa;スタンバイ: AZ-c" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ff9900;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="950" y="380" width="360" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="note-db-stg" value="✅ マルチAZ構成（自動フェイルオーバー）&#xa;RTO: 1-2分、RPO: 0（同期レプリケーション）" style="text;html=1;strokeColor=none;fillColor=#e6ffe6;align=center;verticalAlign=middle;fontSize=9;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="950" y="520" width="360" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 共通サービス（省略版） -->
+        <mxCell id="common-stg" value="共通サービス（詳細は dev 環境参照）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="650" width="1250" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="common-list-stg" value="• Cognito ユーザープール（職員用・事業者用）&#xa;• Secrets Manager（DB接続情報）&#xa;• ECR（コンテナレジストリ）&#xa;• CloudWatch Logs / S3（ログ保管）&#xa;• CloudWatch Alarms / SNS（監視・通知）&#xa;• CloudFront / S3（フロントエンド配信）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="100" y="680" width="1200" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- データフロー -->
+        <mxCell id="flow-loc-dx-stg" value="Direct Connect" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=4;fontSize=9" edge="1" parent="1" source="location-stg" target="dx-stg">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="200" y="110" as="sourcePoint" />
+            <mxPoint x="250" y="110" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-dx-tgw-stg" value="" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=4" edge="1" parent="1" source="dx-stg" target="tgw-stg">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="110" as="sourcePoint" />
+            <mxPoint x="450" y="110" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-tgw-att-stg" value="" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=4" edge="1" parent="1" source="tgw-stg" target="tgw-att-detail-stg">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="525" y="140" as="sourcePoint" />
+            <mxPoint x="170" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-att-alb-stg" value="" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=3" edge="1" parent="1" source="tgw-att-detail-stg" target="alb-internal-detail-stg">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="170" y="290" as="sourcePoint" />
+            <mxPoint x="175" y="400" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-alb-ecs-stg" value="" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=3" edge="1" parent="1" source="alb-internal-detail-stg" target="ecs-business-detail-stg">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="425" as="sourcePoint" />
+            <mxPoint x="500" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="inet-alb-pub-stg" value="HTTPS（事業者）" style="endArrow=classic;html=1;strokeColor=#00cc00;strokeWidth=3;fontSize=9" edge="1" parent="1" target="alb-public-detail-stg">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="30" y="485" as="sourcePoint" />
+            <mxPoint x="100" y="485" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-alb-pub-ecs-stg" value="" style="endArrow=classic;html=1;strokeColor=#00cc00;strokeWidth=3" edge="1" parent="1" source="alb-public-detail-stg" target="ecs-provider-detail-stg">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="485" as="sourcePoint" />
+            <mxPoint x="500" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-ecs-rds-stg" value="DB接続" style="endArrow=classic;html=1;strokeColor=#ff9900;strokeWidth=3;fontSize=9" edge="1" parent="1" source="ecs-business-detail-stg" target="rds-detail-stg">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="680" y="380" as="sourcePoint" />
+            <mxPoint x="950" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ============================================================ -->
+  <!-- タブ4: prod環境 詳細図 -->
+  <!-- ============================================================ -->
+  <diagram id="tab4-prod-detail" name="prod環境 詳細図">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- タイトル -->
+        <mxCell id="title-prod" value="Service Account (prod) - 本番環境 詳細構成図" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=18;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="20" width="1300" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 拠点（左上） -->
+        <mxCell id="location-prod" value="拠点（20拠点）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e6;strokeColor=#ff9800;strokeWidth=2;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="80" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Direct Connect -->
+        <mxCell id="dx-prod" value="Direct Connect&#xa;(Shared Account)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#ff6600;strokeWidth=2;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="250" y="80" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Transit Gateway -->
+        <mxCell id="tgw-prod" value="Transit Gateway&#xa;(Shared Account)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#FFC107;strokeWidth=2;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="450" y="80" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- VPC (prod) -->
+        <mxCell id="vpc-detail-prod" value="VPC (10.2.0.0/16)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2196F3;strokeWidth=3;verticalAlign=top;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="200" width="1300" height="700" as="geometry" />
+        </mxCell>
+
+        <!-- Transit Gateway Attachment -->
+        <mxCell id="tgw-att-detail-prod" value="Transit Gateway Attachment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cce6ff;strokeColor=#0066cc;strokeWidth=2;fontSize=11" vertex="1" parent="1">
+          <mxGeometry x="80" y="240" width="180" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Public Subnet (2AZ) -->
+        <mxCell id="public-detail-prod" value="Public Subnet (10.2.0.0/24, 10.2.1.0/24) - AZ-a, AZ-c" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#cc0000;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="350" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="igw-detail-prod" value="Internet Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cc0000;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="100" y="350" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="alb-internal-detail-prod" value="ALB (Internal)&#xa;業務アプリ用&#xa;(マルチAZ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cc0000;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="100" y="400" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="alb-public-detail-prod" value="ALB (Public)&#xa;事業者アプリ用&#xa;(マルチAZ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cc0000;strokeWidth=1;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="100" y="460" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="nat-a-detail-prod" value="NAT Gateway&#xa;(AZ-a)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cc0000;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="100" y="520" width="70" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nat-c-detail-prod" value="NAT Gateway&#xa;(AZ-c)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cc0000;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="180" y="520" width="70" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="note-nat-prod" value="マルチAZ構成（冗長化）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="100" y="570" width="150" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Private Subnet (2AZ) -->
+        <mxCell id="private-detail-prod" value="Private Subnet (10.2.2.0/24, 10.2.3.0/24) - AZ-a, AZ-c" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e6ffe6;strokeColor=#00cc00;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="480" y="320" width="400" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs-business-detail-prod" value="ECS Fargate&#xa;業務API&#xa;(1vCPU / 2GB)&#xa;タスク数: 最小2、最大10" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#00cc00;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="500" y="350" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs-provider-detail-prod" value="ECS Fargate&#xa;事業者API&#xa;(1vCPU / 2GB)&#xa;タスク数: 最小2、最大10" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#00cc00;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="500" y="420" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs-batch-detail-prod" value="ECS Fargate&#xa;バッチ&#xa;(2vCPU / 4GB)&#xa;タスク数: 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#00cc00;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="500" y="490" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="note-private-prod" value="✅ 本番スペック（高可用性）&#xa;マルチAZ配置 + オートスケーリング" style="text;html=1;strokeColor=none;fillColor=#e6ffe6;align=center;verticalAlign=middle;fontSize=9;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="500" y="560" width="250" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- DB Subnet (2AZ) -->
+        <mxCell id="db-detail-prod" value="DB Subnet (10.2.4.0/24, 10.2.5.0/24) - AZ-a, AZ-c" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e6;strokeColor=#ff9900;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="930" y="320" width="400" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="rds-detail-prod" value="RDS PostgreSQL&#xa;(マルチAZ)&#xa;db.t4g.medium&#xa;100GB GP2&#xa;&#xa;プライマリ: AZ-a&#xa;スタンバイ: AZ-c&#xa;&#xa;バックアップ: 7日間自動&#xa;スナップショット: 日次" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ff9900;strokeWidth=1;fontSize=9" vertex="1" parent="1">
+          <mxGeometry x="950" y="370" width="360" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="note-db-prod" value="✅ 本番構成（高可用性 + バックアップ）&#xa;RTO: 1-2分、RPO: 0（同期レプリケーション）&#xa;ポイントインタイムリカバリ対応" style="text;html=1;strokeColor=none;fillColor=#e6ffe6;align=center;verticalAlign=middle;fontSize=9;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="950" y="520" width="360" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 共通サービス（省略版） -->
+        <mxCell id="common-prod" value="共通サービス（詳細は dev 環境参照）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;strokeWidth=2;verticalAlign=top;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="650" width="1250" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="common-list-prod" value="• Cognito ユーザープール（職員用・事業者用）&#xa;• Secrets Manager（DB接続情報）&#xa;• ECR（コンテナレジストリ）&#xa;• CloudWatch Logs / S3（ログ保管）&#xa;• CloudWatch Alarms / SNS（監視・通知）&#xa;• CloudFront / S3（フロントエンド配信）&#xa;&#xa;🔔 本番環境では監視アラームを厳密に設定" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=10" vertex="1" parent="1">
+          <mxGeometry x="100" y="680" width="1200" height="170" as="geometry" />
+        </mxCell>
+
+        <!-- データフロー -->
+        <mxCell id="flow-loc-dx-prod" value="Direct Connect" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=4;fontSize=9" edge="1" parent="1" source="location-prod" target="dx-prod">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="200" y="110" as="sourcePoint" />
+            <mxPoint x="250" y="110" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-dx-tgw-prod" value="" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=4" edge="1" parent="1" source="dx-prod" target="tgw-prod">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="110" as="sourcePoint" />
+            <mxPoint x="450" y="110" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-tgw-att-prod" value="" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=4" edge="1" parent="1" source="tgw-prod" target="tgw-att-detail-prod">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="525" y="140" as="sourcePoint" />
+            <mxPoint x="170" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-att-alb-prod" value="" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=3" edge="1" parent="1" source="tgw-att-detail-prod" target="alb-internal-detail-prod">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="170" y="290" as="sourcePoint" />
+            <mxPoint x="175" y="400" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-alb-ecs-prod" value="" style="endArrow=classic;html=1;strokeColor=#ff6600;strokeWidth=3" edge="1" parent="1" source="alb-internal-detail-prod" target="ecs-business-detail-prod">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="425" as="sourcePoint" />
+            <mxPoint x="500" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="inet-alb-pub-prod" value="HTTPS（事業者）" style="endArrow=classic;html=1;strokeColor=#00cc00;strokeWidth=3;fontSize=9" edge="1" parent="1" target="alb-public-detail-prod">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="30" y="485" as="sourcePoint" />
+            <mxPoint x="100" y="485" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-alb-pub-ecs-prod" value="" style="endArrow=classic;html=1;strokeColor=#00cc00;strokeWidth=3" edge="1" parent="1" source="alb-public-detail-prod" target="ecs-provider-detail-prod">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="250" y="485" as="sourcePoint" />
+            <mxPoint x="500" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="flow-ecs-rds-prod" value="DB接続" style="endArrow=classic;html=1;strokeColor=#ff9900;strokeWidth=3;fontSize=9" edge="1" parent="1" source="ecs-business-detail-prod" target="rds-detail-prod">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="680" y="380" as="sourcePoint" />
+            <mxPoint x="950" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+</mxfile>

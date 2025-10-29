@@ -1,30 +1,74 @@
-# Dependencies
-node_modules/
-package-lock.json
+# AI開発ファシリテーター .gitignore
 
-# Environment variables
+# 状態ファイル（セッション情報）
+.claude-state/
+
+# 環境変数
 .env
 .env.local
 .env.*.local
+
+# MCP設定（API キーを含む）
+.mcp.json
+.claude/mcp.json
+
+# 依存関係
+node_modules/
+venv/
+__pycache__/
+*.pyc
+
+# ビルド成果物
+dist/
+build/
+*.egg-info/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Build outputs
-dist/
-build/
-*.log
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+*.tfplan
 
 # AWS
 .aws/
 
-# Temporary files
+# ログ
+*.log
+logs/
+
+# 一時ファイル
+tmp/
+temp/
 *.tmp
-*.bak
+
+# カバレッジ
+coverage/
+.nyc_output/
+*.coverage
+
+# テスト
+.pytest_cache/
+
+# レビュー用の一時ディレクトリ
+review-temp/
+
+# 3周テスト実行環境（生成物は追跡しない、手順書は追跡する）
+test/round1/*
+test/round2/*
+test/round3/*
+test/reports/*.md
+!test/reports/.gitkeep
+!test/README.md
+!test/plans/

@@ -171,6 +171,47 @@ Resources:
         - !Ref SNSTopicArn
       TreatMissingData: notBreaching
 
+  # --------------------------------------------------------------------------
+  # X-Ray Alarms
+  # --------------------------------------------------------------------------
+  XRayErrorRateHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-xray-error-rate-high
+      AlarmDescription: X-Ray エラー率が5%を超えました
+      MetricName: ErrorRate
+      Namespace: AWS/XRay
+      Statistic: Average
+      Period: 120
+      EvaluationPeriods: 2
+      Threshold: 5.0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ServiceName
+          Value: !Sub ${ProjectName}-staff-api
+      AlarmActions:
+        - !Ref SNSTopicArn
+      TreatMissingData: notBreaching
+
+  XRayLatencyHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ${ProjectName}-${Environment}-xray-latency-p95-high
+      AlarmDescription: X-Ray レスポンスタイム（95%ile）が500msを超えました
+      MetricName: ApproximateLatency
+      Namespace: AWS/XRay
+      ExtendedStatistic: p95
+      Period: 120
+      EvaluationPeriods: 2
+      Threshold: 500.0
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ServiceName
+          Value: !Sub ${ProjectName}-staff-api
+      AlarmActions:
+        - !Ref SNSTopicArn
+      TreatMissingData: notBreaching
+
 # ==============================================================================
 # Outputs
 # ==============================================================================
@@ -182,3 +223,11 @@ Outputs:
   RDSCPUAlarmName:
     Description: RDS CPU Alarm Name
     Value: !Ref RDSCPUUtilizationHighAlarm
+
+  XRayErrorRateAlarmName:
+    Description: X-Ray Error Rate Alarm Name
+    Value: !Ref XRayErrorRateHighAlarm
+
+  XRayLatencyAlarmName:
+    Description: X-Ray Latency Alarm Name
+    Value: !Ref XRayLatencyHighAlarm

@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "default": {
+    "fixed_target": 1,
+    "rate": 0.05
+  },
+  "rules": [
+    {
+      "description": "Error sampling - trace all errors",
+      "host": "*",
+      "http_method": "*",
+      "url_path": "*",
+      "fixed_target": 0,
+      "rate": 1.0,
+      "service_name": "*",
+      "service_type": "*",
+      "resource_arn": "*",
+      "attributes": {
+        "http.status": ["5*"]
+      }
+    },
+    {
+      "description": "High latency sampling - trace slow requests (>1s)",
+      "host": "*",
+      "http_method": "*",
+      "url_path": "*",
+      "fixed_target": 0,
+      "rate": 1.0,
+      "service_name": "*",
+      "service_type": "*",
+      "resource_arn": "*"
+    },
+    {
+      "description": "Default sampling - based on environment (prod: 5%, stg: 10%, dev: 100%)",
+      "host": "*",
+      "http_method": "*",
+      "url_path": "*",
+      "fixed_target": 1,
+      "rate": 0.05,
+      "service_name": "*",
+      "service_type": "*",
+      "resource_arn": "*"
+    }
+  ]
+}

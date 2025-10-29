@@ -1,13 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir:*)",
-      "Bash(git add:*)",
+      "Bash(git log:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(tree:*)",
-      "Bash(find:*)",
-      "Bash(chmod:*)"
+      "Bash(git add:*)",
+      "Bash(powershell:*)",
+      "Bash(npm install:*)",
+      "Bash(\"C:\\Program Files\\draw.io\\draw.io.exe\" --help)",
+      "Bash(\"C:\\Program Files\\draw.io\\draw.io.exe\" -x -f png -o \"c:\\dev2\\sampleAWS-subagent\\docs\\03_基本設計\\01_システム構成\\システム構成図.png\" --width 2400 --border 20 \"c:\\dev2\\sampleAWS-subagent\\docs\\03_基本設計\\01_システム構成\\システム構成図.drawio\")",
+      "Bash(\"C:\\Program Files\\draw.io\\draw.io.exe\" -x -f png -o \"c:\\dev2\\sampleAWS-subagent\\docs\\03_基本設計\\02_ネットワーク\\ネットワーク図.png\" --width 2400 --border 20 \"c:\\dev2\\sampleAWS-subagent\\docs\\03_基本設計\\02_ネットワーク\\ネットワーク図.drawio\")",
+      "Bash(dir:*)",
+      "Bash(\"C:\\Program Files\\draw.io\\draw.io.exe\" -x -f png -o \"c:\\dev2\\sampleAWS-subagent\\docs\\03_基本設計\\01_システム構成\\マルチアカウント全体構成図_v1.2.png\" --width 2400 --border 20 \"c:\\dev2\\sampleAWS-subagent\\docs\\03_基本設計\\01_システム構成\\マルチアカウント全体構成図_v1.2.drawio\")",
+      "Bash(git rm:*)",
+      "Bash(del:*)"
     ],
     "deny": [],
     "ask": []
